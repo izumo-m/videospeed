@@ -23,8 +23,8 @@ if (!window.VSC.VideoSpeedConfig) {
         const isInjectedContext = typeof chrome === 'undefined' || !chrome.storage;
         const storage = isInjectedContext
           ? await window.VSC.StorageManager.waitForInjectedSettings(
-            window.VSC.Constants.DEFAULT_SETTINGS
-          )
+              window.VSC.Constants.DEFAULT_SETTINGS
+            )
           : await window.VSC.StorageManager.get(window.VSC.Constants.DEFAULT_SETTINGS);
 
         // Handle key bindings migration/initialization
@@ -192,8 +192,16 @@ if (!window.VSC.VideoSpeedConfig) {
         predefined: true,
       });
 
+      keyBindings.push({
+        action: 'boost',
+        key: Number(storage.boostKeyCode) || 42,
+        value: Number(storage.boostSpeed) || 5.0,
+        force: false,
+        predefined: false,
+      });
+
       this.settings.keyBindings = keyBindings;
-      this.settings.version = '0.5.3';
+      this.settings.version = '0.5.3+boost';
 
       // Save the migrated settings
       await window.VSC.StorageManager.set({

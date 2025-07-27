@@ -47,6 +47,7 @@ if (!window.VSC.Constants.DEFAULT_SETTINGS) {
       { action: 'display', key: 86, value: 0, force: false, predefined: true }, // V
       { action: 'mark', key: 77, value: 0, force: false, predefined: true }, // M
       { action: 'jump', key: 74, value: 0, force: false, predefined: true }, // J
+      { action: 'boost', key: 42, value: 5.0, force: false, predefined: false }, // B
     ],
     blacklist: `www.instagram.com
 x.com

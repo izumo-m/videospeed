@@ -145,6 +145,10 @@ class ActionHandler {
         this.jumpToMark(video);
         break;
 
+      case 'boost':
+        this.boostSpeed(video, value);
+        break;
+
       case 'SET_SPEED':
         window.VSC.logger.info('Setting speed to:', value);
         this.adjustSpeed(video, value);
@@ -260,6 +264,18 @@ class ActionHandler {
     window.VSC.logger.debug('Recalling marker');
     if (video.vsc.mark && typeof video.vsc.mark === 'number') {
       video.currentTime = video.vsc.mark;
+    }
+  }
+
+  /**
+   * Toggle boost speed
+   */
+  boostSpeed(video, target) {
+    if (video.playbackRate === target) {
+      this.adjustSpeed(video, 1.0);
+    } else {
+      this.adjustSpeed(video, target);
+      this.config.setKeyBinding('reset', this.config.getKeyBinding('fast'));
     }
   }
 

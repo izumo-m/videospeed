@@ -1,11 +1,11 @@
 {
-  "name": "Video Speed Controller",
-  "short_name": "videospeed",
+  "name": "Video Speed Controller (+Boost patch)",
+  "short_name": "videospeed+boost",
   "version": "0.9.2",
   "manifest_version": 3,
   "minimum_chrome_version": "89",
   "description": "Speed up, slow down, advance and rewind HTML5 audio/video with shortcuts",
-  "homepage_url": "https://github.com/igrigorik/videospeed",
+  "homepage_url": "https://github.com/izumo-m/videospeed",
   "icons": {
     "16": "src/assets/icons/icon16.png",
     "48": "src/assets/icons/icon48.png",
