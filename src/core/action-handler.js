@@ -1,6 +1,6 @@
 /**
  * Action handling system for Video Speed Controller
- * Modular architecture using global variables
+ * 
  */
 
 window.VSC = window.VSC || {};
@@ -20,7 +20,10 @@ class ActionHandler {
   runAction(action, value, e) {
     window.VSC.logger.debug(`runAction Begin: ${action}`);
 
-    const mediaTags = this.config.getMediaElements();
+    // Use state manager for complete media discovery (includes shadow DOM)
+    const mediaTags = window.VSC.stateManager ?
+      window.VSC.stateManager.getControlledElements() :
+      []; // No fallback - state manager should always be available
 
     // Get the controller that was used if called from a button press event
     let targetController = null;
@@ -98,12 +101,23 @@ class ActionHandler {
         controller.classList.add('vsc-manual');
         controller.classList.toggle('vsc-hidden');
 
-        // Clear inline fallback styles to prevent conflicts with CSS classes
-        if (controller.classList.contains('vsc-manual')) {
-          controller.style.removeProperty('display');
-          controller.style.removeProperty('visibility');
-          controller.style.removeProperty('opacity');
-          window.VSC.logger.debug('Cleared inline fallback styles for manual toggle');
+        // Clear any pending timers that might interfere with manual toggle
+        // This prevents delays when manually hiding/showing the controller
+        if (controller.blinkTimeOut !== undefined) {
+          clearTimeout(controller.blinkTimeOut);
+          controller.blinkTimeOut = undefined;
+        }
+
+        // Also clear EventManager timer if it exists
+        if (this.eventManager && this.eventManager.timer) {
+          clearTimeout(this.eventManager.timer);
+          this.eventManager.timer = null;
+        }
+
+        // Remove vsc-show class immediately when manually hiding
+        if (controller.classList.contains('vsc-hidden')) {
+          controller.classList.remove('vsc-show');
+          window.VSC.logger.debug('Removed vsc-show class for immediate manual hide');
         }
         break;
       }
@@ -196,27 +210,38 @@ class ActionHandler {
   }
 
   /**
-   * Reset speed with toggle functionality
+   * Reset speed with memory toggle functionality
    * @param {HTMLMediaElement} video - Video element
-   * @param {number} target - Target speed
+   * @param {number} target - Target speed (usually 1.0)
    */
   resetSpeed(video, target) {
-    if (video.playbackRate === target) {
-      if (video.playbackRate === this.config.getKeyBinding('reset')) {
-        if (target !== 1.0) {
-          window.VSC.logger.info('Resetting playback speed to 1.0');
-          this.adjustSpeed(video, 1.0);
-        } else {
-          window.VSC.logger.info('Toggling playback speed to "fast" speed');
-          this.adjustSpeed(video, this.config.getKeyBinding('fast'));
-        }
+    // Show controller for visual feedback (will be shown by adjustSpeed but we can show it early)
+    if (video.vsc?.div && this.eventManager) {
+      this.eventManager.showController(video.vsc.div);
+    }
+
+    if (!video.vsc) {
+      window.VSC.logger.warn('resetSpeed called on video without controller');
+      return;
+    }
+
+    const currentSpeed = video.playbackRate;
+
+    if (currentSpeed === target) {
+      // At target speed - restore remembered speed if we have one, otherwise reset to target
+      if (video.vsc.speedBeforeReset !== null) {
+        window.VSC.logger.info(`Restoring remembered speed: ${video.vsc.speedBeforeReset}`);
+        const rememberedSpeed = video.vsc.speedBeforeReset;
+        video.vsc.speedBeforeReset = null; // Clear memory after use
+        this.adjustSpeed(video, rememberedSpeed);
       } else {
-        window.VSC.logger.info('Toggling playback speed to "reset" speed');
-        this.adjustSpeed(video, this.config.getKeyBinding('reset'));
+        window.VSC.logger.info(`Already at reset speed ${target}, no change`);
+        // Already at target and nothing remembered - no action needed
       }
     } else {
-      window.VSC.logger.info('Toggling playback speed to "reset" speed');
-      this.config.setKeyBinding('reset', video.playbackRate);
+      // Not at target speed - remember current and reset to target
+      window.VSC.logger.info(`Remembering speed ${currentSpeed} and resetting to ${target}`);
+      video.vsc.speedBeforeReset = currentSpeed;
       this.adjustSpeed(video, target);
     }
   }
@@ -289,22 +314,29 @@ class ActionHandler {
     // but should maintain visible controllers for user interaction
     const isAudioController = this.isAudioController(controller);
 
-    if (controller.classList.contains('vsc-hidden') || controller.blinkTimeOut !== undefined) {
+    // Always clear any existing timeout first
+    if (controller.blinkTimeOut !== undefined) {
       clearTimeout(controller.blinkTimeOut);
-      controller.classList.remove('vsc-hidden');
+      controller.blinkTimeOut = undefined;
+    }
 
-      // For audio controllers, don't set timeout to hide again
-      if (!isAudioController) {
-        controller.blinkTimeOut = setTimeout(
-          () => {
-            controller.classList.add('vsc-hidden');
-            controller.blinkTimeOut = undefined;
-          },
-          duration ? duration : 1000
-        );
-      } else {
-        window.VSC.logger.debug('Audio controller blink - keeping visible');
-      }
+    // Add vsc-show class to temporarily show controller
+    // This overrides vsc-hidden via CSS specificity
+    controller.classList.add('vsc-show');
+    window.VSC.logger.debug('Showing controller temporarily with vsc-show class');
+
+    // For audio controllers, don't set timeout to hide again
+    if (!isAudioController) {
+      controller.blinkTimeOut = setTimeout(
+        () => {
+          controller.classList.remove('vsc-show');
+          controller.blinkTimeOut = undefined;
+          window.VSC.logger.debug('Removing vsc-show class after timeout');
+        },
+        duration ? duration : 2500
+      );
+    } else {
+      window.VSC.logger.debug('Audio controller blink - keeping vsc-show class');
     }
   }
 
@@ -315,8 +347,9 @@ class ActionHandler {
    * @private
    */
   isAudioController(controller) {
-    // Find associated media element
-    const mediaElements = this.config.getMediaElements();
+    // Find associated media element using state manager
+    const mediaElements = window.VSC.stateManager ?
+      window.VSC.stateManager.getControlledElements() : [];
     for (const media of mediaElements) {
       if (media.vsc && media.vsc.div === controller) {
         return media.tagName === 'AUDIO';
@@ -346,6 +379,11 @@ class ActionHandler {
     if (typeof value !== 'number' || isNaN(value)) {
       window.VSC.logger.warn('adjustSpeed called with invalid value:', value);
       return;
+    }
+
+    // Show controller for visual feedback when speed is changed
+    if (video.vsc?.div && this.eventManager) {
+      this.eventManager.showController(video.vsc.div);
     }
 
     // Calculate target speed

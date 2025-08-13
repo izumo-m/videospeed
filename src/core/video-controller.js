@@ -1,6 +1,6 @@
 /**
  * Video Controller class for managing individual video elements
- * Modular architecture using global variables
+ * 
  */
 
 window.VSC = window.VSC || {};
@@ -22,8 +22,8 @@ class VideoController {
     // Generate unique controller ID for badge tracking
     this.controllerId = this.generateControllerId(target);
 
-    // Add to tracked media elements
-    config.addMediaElement(target);
+    // Transient reset memory (not persisted, per-controller)
+    this.speedBeforeReset = null;
 
     // Attach controller to video element first (needed for adjustSpeed)
     target.vsc = this;
@@ -42,12 +42,11 @@ class VideoController {
 
     window.VSC.logger.info('VideoController initialized for video element');
 
-    // Dispatch controller created event for badge management
-    this.dispatchControllerEvent('VSC_CONTROLLER_CREATED', {
-      controllerId: this.controllerId,
-      videoSrc: this.video.currentSrc || this.video.src,
-      tagName: this.video.tagName,
-    });
+    if (window.VSC.stateManager) {
+      window.VSC.stateManager.registerController(this);
+    } else {
+      window.VSC.logger.error('StateManager not available during VideoController initialization');
+    }
   }
 
   /**
@@ -132,24 +131,13 @@ class VideoController {
     wrapper.className = cssClasses.join(' ');
 
     // Set positioning styles with calculated position
-    // Use inline styles without !important so CSS rules can override
-    let styleText = `
+    // Only use positioning styles - rely on CSS classes for visibility
+    const styleText = `
       position: absolute !important;
       z-index: 9999999 !important;
       top: ${position.top};
       left: ${position.left};
     `;
-
-    // Add inline fallback styles if controller should start hidden
-    // This prevents FOUC if inject.css hasn't loaded yet
-    if (this.config.settings.startHidden || this.shouldStartHidden) {
-      styleText += `
-        display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
-      `;
-      window.VSC.logger.debug('Applied inline fallback styles for hidden controller');
-    }
 
     wrapper.style.cssText = styleText;
 
@@ -230,17 +218,13 @@ class VideoController {
     // Bind event handlers
     this.handlePlay = mediaEventAction.bind(this);
     this.handleSeek = mediaEventAction.bind(this);
-    this.handleLoadStart = mediaEventAction.bind(this);
-    this.handleCanPlay = mediaEventAction.bind(this);
 
-    // Add comprehensive event listeners for robust speed restoration
+    // Add essential event listeners for speed restoration
     this.video.addEventListener('play', this.handlePlay);
     this.video.addEventListener('seeked', this.handleSeek);
-    this.video.addEventListener('loadstart', this.handleLoadStart);
-    this.video.addEventListener('canplay', this.handleCanPlay);
 
     window.VSC.logger.debug(
-      'Added comprehensive media event handlers: play, seeked, loadstart, canplay'
+      'Added essential media event handlers: play, seeked'
     );
   }
 
@@ -289,32 +273,21 @@ class VideoController {
     if (this.handleSeek) {
       this.video.removeEventListener('seeked', this.handleSeek);
     }
-    if (this.handleLoadStart) {
-      this.video.removeEventListener('loadstart', this.handleLoadStart);
-    }
-    if (this.handleCanPlay) {
-      this.video.removeEventListener('canplay', this.handleCanPlay);
-    }
 
     // Disconnect mutation observer
     if (this.targetObserver) {
       this.targetObserver.disconnect();
     }
 
-    // Remove from tracking
-    this.config.removeMediaElement(this.video);
+    // Remove from state manager
+    if (window.VSC.stateManager) {
+      window.VSC.stateManager.removeController(this.controllerId);
+    }
 
     // Remove reference from video element
     delete this.video.vsc;
 
     window.VSC.logger.debug('VideoController removed successfully');
-
-    // Dispatch controller removed event for badge management
-    this.dispatchControllerEvent('VSC_CONTROLLER_REMOVED', {
-      controllerId: this.controllerId,
-      videoSrc: this.video.currentSrc || this.video.src,
-      tagName: this.video.tagName,
-    });
   }
 
   /**
@@ -402,24 +375,6 @@ class VideoController {
       // Video became invisible and controller is visible
       this.div.classList.add('vsc-hidden');
       window.VSC.logger.debug('Hiding controller - video became invisible');
-    }
-  }
-
-  /**
-   * Dispatch controller lifecycle events for badge management
-   * @param {string} eventType - Event type (VSC_CONTROLLER_CREATED or VSC_CONTROLLER_REMOVED)
-   * @param {Object} detail - Event detail data
-   * @private
-   */
-  dispatchControllerEvent(eventType, detail) {
-    try {
-      const event = new CustomEvent(eventType, { detail });
-      window.dispatchEvent(event);
-      window.VSC.logger.debug(
-        `Dispatched ${eventType} event for controller ${detail.controllerId}`
-      );
-    } catch (error) {
-      window.VSC.logger.error(`Failed to dispatch ${eventType} event:`, error);
     }
   }
 }

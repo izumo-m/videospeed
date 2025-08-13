@@ -1,31 +1,23 @@
 /**
  * Settings management for Video Speed Controller
- * Modular architecture using global variables
  */
 
 window.VSC = window.VSC || {};
 
-// Skip loading if already loaded to prevent redeclaration errors
 if (!window.VSC.VideoSpeedConfig) {
   class VideoSpeedConfig {
     constructor() {
       this.settings = { ...window.VSC.Constants.DEFAULT_SETTINGS };
-      this.mediaElements = [];
     }
 
     /**
-     * Load settings from Chrome storage
+     * Load settings from Chrome storage or pre-injected settings
      * @returns {Promise<Object>} Loaded settings
      */
     async load() {
       try {
-        // In injected context, wait for user settings to be available
-        const isInjectedContext = typeof chrome === 'undefined' || !chrome.storage;
-        const storage = isInjectedContext
-          ? await window.VSC.StorageManager.waitForInjectedSettings(
-              window.VSC.Constants.DEFAULT_SETTINGS
-            )
-          : await window.VSC.StorageManager.get(window.VSC.Constants.DEFAULT_SETTINGS);
+        // Use StorageManager which handles both contexts automatically
+        const storage = await window.VSC.StorageManager.get(window.VSC.Constants.DEFAULT_SETTINGS);
 
         // Handle key bindings migration/initialization
         this.settings.keyBindings =
@@ -104,124 +96,36 @@ if (!window.VSC.VideoSpeedConfig) {
     }
 
     /**
-     * Set a key binding value
+     * Set a key binding value with validation
      * @param {string} action - Action name
      * @param {*} value - Value to set
      */
     setKeyBinding(action, value) {
       try {
         const binding = this.settings.keyBindings.find((item) => item.action === action);
-        if (binding) {
-          binding.value = value;
+        if (!binding) {
+          window.VSC.logger.warn(`No key binding found for action: ${action}`);
+          return;
         }
+
+        // Validate speed-related values to prevent corruption
+        if (['reset', 'fast', 'slower', 'faster'].includes(action)) {
+          if (typeof value !== 'number' || isNaN(value)) {
+            window.VSC.logger.warn(`Invalid numeric value for ${action}: ${value}`);
+            return;
+          }
+        }
+
+        binding.value = value;
+        window.VSC.logger.debug(`Updated key binding ${action} to ${value}`);
       } catch (e) {
         window.VSC.logger.error(`Failed to set key binding for ${action}: ${e.message}`);
       }
     }
 
     /**
-     * Initialize default key bindings for first-time setup
-     * @param {Object} storage - Storage object with legacy values
-     * @private
-     */
-    async initializeDefaultKeyBindings(storage) {
-      const keyBindings = [];
-
-      // Migrate from legacy settings if they exist
-      keyBindings.push({
-        action: 'slower',
-        key: Number(storage.slowerKeyCode) || 83,
-        value: Number(storage.speedStep) || 0.1,
-        force: false,
-        predefined: true,
-      });
-
-      keyBindings.push({
-        action: 'faster',
-        key: Number(storage.fasterKeyCode) || 68,
-        value: Number(storage.speedStep) || 0.1,
-        force: false,
-        predefined: true,
-      });
-
-      keyBindings.push({
-        action: 'rewind',
-        key: Number(storage.rewindKeyCode) || 90,
-        value: Number(storage.rewindTime) || 10,
-        force: false,
-        predefined: true,
-      });
-
-      keyBindings.push({
-        action: 'advance',
-        key: Number(storage.advanceKeyCode) || 88,
-        value: Number(storage.advanceTime) || 10,
-        force: false,
-        predefined: true,
-      });
-
-      keyBindings.push({
-        action: 'reset',
-        key: Number(storage.resetKeyCode) || 82,
-        value: 1.0,
-        force: false,
-        predefined: true,
-      });
-
-      keyBindings.push({
-        action: 'fast',
-        key: Number(storage.fastKeyCode) || 71,
-        value: Number(storage.fastSpeed) || 1.8,
-        force: false,
-        predefined: true,
-      });
-
-      keyBindings.push({
-        action: 'mark',
-        key: 77, // M key
-        value: 0,
-        force: false,
-        predefined: true,
-      });
-
-      keyBindings.push({
-        action: 'jump',
-        key: 74, // J key
-        value: 0,
-        force: false,
-        predefined: true,
-      });
-
-      keyBindings.push({
-        action: 'boost',
-        key: Number(storage.boostKeyCode) || 42,
-        value: Number(storage.boostSpeed) || 5.0,
-        force: false,
-        predefined: false,
-      });
-
-      this.settings.keyBindings = keyBindings;
-      this.settings.version = '0.5.3+boost';
-
-      // Save the migrated settings
-      await window.VSC.StorageManager.set({
-        keyBindings: this.settings.keyBindings,
-        version: this.settings.version,
-        displayKeyCode: this.settings.displayKeyCode,
-        rememberSpeed: this.settings.rememberSpeed,
-        forceLastSavedSpeed: this.settings.forceLastSavedSpeed,
-        audioBoolean: this.settings.audioBoolean,
-        startHidden: this.settings.startHidden,
-        enabled: this.settings.enabled,
-        controllerOpacity: this.settings.controllerOpacity,
-        controllerButtonSize: this.settings.controllerButtonSize,
-        blacklist: this.settings.blacklist,
-      });
-    }
-
-    /**
-     * Ensure display binding exists (for version upgrades)
-     * @param {Object} storage - Storage object
+     * Ensure display binding exists in key bindings
+     * @param {Object} storage - Storage object  
      * @private
      */
     ensureDisplayBinding(storage) {
@@ -235,42 +139,11 @@ if (!window.VSC.VideoSpeedConfig) {
         });
       }
     }
-
-    /**
-     * Add a media element to tracking
-     * @param {HTMLMediaElement} element - Media element to track
-     */
-    addMediaElement(element) {
-      if (!this.mediaElements.includes(element)) {
-        this.mediaElements.push(element);
-      }
-    }
-
-    /**
-     * Remove a media element from tracking
-     * @param {HTMLMediaElement} element - Media element to remove
-     */
-    removeMediaElement(element) {
-      const index = this.mediaElements.indexOf(element);
-      if (index !== -1) {
-        this.mediaElements.splice(index, 1);
-      }
-    }
-
-    /**
-     * Get all tracked media elements
-     * @returns {Array<HTMLMediaElement>} Array of media elements
-     */
-    getMediaElements() {
-      return this.mediaElements;
-    }
   }
 
   // Create singleton instance
   window.VSC.videoSpeedConfig = new VideoSpeedConfig();
 
-  // Also export the constructor for testing
+  // Export constructor for testing
   window.VSC.VideoSpeedConfig = VideoSpeedConfig;
-} // End conditional loading check
-
-// Global variables available for both browser and testing
+}

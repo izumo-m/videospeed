@@ -1,6 +1,5 @@
 /**
  * Event management system for Video Speed Controller
- * Modular architecture using global variables
  */
 
 window.VSC = window.VSC || {};
@@ -88,7 +87,9 @@ class EventManager {
     }
 
     // Ignore keydown event if no media elements are present
-    if (!this.config.getMediaElements().length) {
+    const mediaElements = window.VSC.stateManager ?
+      window.VSC.stateManager.getControlledElements() : [];
+    if (!mediaElements.length) {
       return false;
     }
 
@@ -216,15 +217,16 @@ class EventManager {
   }
 
   /**
-   * Show controller temporarily
+   * Show controller temporarily during speed changes or other automatic actions
    * @param {Element} controller - Controller element
    */
   showController(controller) {
-    // Respect startHidden setting - don't show controllers that should stay hidden
-    // unless they've been manually toggled by the user (have vsc-manual class)
+    // When startHidden is enabled, only show temporary feedback if the user has
+    // previously interacted with this controller manually (vsc-manual class)
+    // This prevents unwanted controller appearances on pages where user wants them hidden
     if (this.config.settings.startHidden && !controller.classList.contains('vsc-manual')) {
       window.VSC.logger.info(
-        `Controller hidden by default - not showing temporarily (startHidden: ${this.config.settings.startHidden}, manual: ${controller.classList.contains('vsc-manual')})`
+        `Controller respecting startHidden setting - no temporary display (startHidden: ${this.config.settings.startHidden}, manual: ${controller.classList.contains('vsc-manual')})`
       );
       return;
     }
