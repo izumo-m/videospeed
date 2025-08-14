@@ -16,7 +16,8 @@
     "lint": "eslint src/**/*.js tests/**/*.js",
     "lint:fix": "eslint src/**/*.js tests/**/*.js --fix",
     "format": "prettier --write src/**/*.js tests/**/*.js",
-    "zip": "npm run build && rm -rf dist/videospeed.zip && mkdir -p dist/videospeed && cp -r manifest.json dist/*.js src/styles src/assets src/ui/popup src/ui/options *.md dist/videospeed/ && cd dist && zip -r videospeed.zip videospeed && cd .. && echo 'Extension packaged at dist/videospeed.zip'"
+    "zip": "npm run build && mkdir -p dist/videospeed/dist && mkdir -p dist/videospeed/src/ui/{options,popup} && cp manifest.json *.md dist/videospeed/ && cp dist/*.js dist/videospeed/dist/ && cp -r src/{assets,styles} dist/videospeed/src/ && cp -r src/ui/options/*.{css,html}  dist/videospeed/src/ui/options/ && cp -r src/ui/popup/*.{css,html}  dist/videospeed/src/ui/popup/ && cd dist && zip -r videospeed.zip videospeed && cd .. && echo 'Extension packaged at dist/videospeed.zip'",
+    "_zip": "npm run build && mkdir -p dist/videospeed/dist && cp manifest.json *.md dist/videospeed/ && cp dist/*.js dist/videospeed/dist/ && cp -r src dist/videospeed/ && cd dist && zip -r videospeed.zip videospeed && cd .. && echo 'Extension packaged at dist/videospeed.zip'"
   },
   "devDependencies": {
     "@eslint/js": "^8.57.0",
