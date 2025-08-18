@@ -4,19 +4,29 @@
 
 import { installChromeMock, cleanupChromeMock } from '../../helpers/chrome-mock.js';
 import { SimpleTestRunner, assert } from '../../helpers/test-utils.js';
-import { loadObserverModules } from '../../helpers/module-loader.js';
+import { loadCoreModules } from '../../helpers/module-loader.js';
 
 // Load all required modules
-await loadObserverModules();
+await loadCoreModules();
 
 const runner = new SimpleTestRunner();
 
 runner.beforeEach(() => {
   installChromeMock();
+  // Clear state manager before each test to ensure isolation
+  if (window.VSC && window.VSC.stateManager) {
+    window.VSC.stateManager.controllers.clear();
+  }
 });
 
 runner.afterEach(() => {
   cleanupChromeMock();
+  // Clear state manager after each test to prevent state leakage
+  if (window.VSC && window.VSC.stateManager) {
+    window.VSC.stateManager.controllers.clear();
+  }
+  // Remove any lingering video elements
+  document.querySelectorAll('video, audio').forEach(el => el.remove());
 });
 
 function createMockVideo(options = {}) {
@@ -59,9 +69,6 @@ runner.test('VideoController should register with state manager', async () => {
   const config = window.VSC.videoSpeedConfig;
   await config.load();
 
-  // Clear state manager
-  window.VSC.stateManager.controllers.clear();
-
   const actionHandler = new window.VSC.ActionHandler(config);
   const mockVideo = createMockVideo();
   document.body.appendChild(mockVideo);
@@ -90,9 +97,6 @@ runner.test('VideoController should register with state manager', async () => {
 runner.test('VideoController should unregister from state manager on removal', async () => {
   const config = window.VSC.videoSpeedConfig;
   await config.load();
-
-  // Clear state manager
-  window.VSC.stateManager.controllers.clear();
 
   const actionHandler = new window.VSC.ActionHandler(config);
   const mockVideo = createMockVideo();
@@ -154,9 +158,6 @@ runner.test('Audio controllers should register with state manager too', async ()
   const config = window.VSC.videoSpeedConfig;
   await config.load();
   config.settings.audioBoolean = true; // Enable audio support
-
-  // Clear state manager
-  window.VSC.stateManager.controllers.clear();
 
   const actionHandler = new window.VSC.ActionHandler(config);
   const mockAudio = document.createElement('audio');
