@@ -22,7 +22,7 @@ class VideoController {
     // Generate unique controller ID for badge tracking
     this.controllerId = this.generateControllerId(target);
 
-    // Transient reset memory (not persisted, per-controller)
+    // Transient reset memory (not persisted, instance-specific)
     this.speedBeforeReset = null;
 
     // Attach controller to video element first (needed for adjustSpeed)
@@ -73,18 +73,14 @@ class VideoController {
    * @private
    */
   getTargetSpeed(media = this.video) {
-    let targetSpeed;
+    // Always start with current preferred speed (lastSpeed)
+    // The difference is whether changes get saved back to lastSpeed
+    const targetSpeed = this.config.settings.lastSpeed || 1.0;
 
     if (this.config.settings.rememberSpeed) {
-      // Global behavior - use lastSpeed for all videos
-      targetSpeed = this.config.settings.lastSpeed || 1.0;
-      window.VSC.logger.debug(`Global mode: using lastSpeed ${targetSpeed}`);
+      window.VSC.logger.debug(`Remember mode: using lastSpeed ${targetSpeed} (changes will be saved)`);
     } else {
-      // Per-video behavior - use stored speed for this specific video
-      const videoSrc = media.currentSrc || media.src;
-      const storedSpeed = this.config.settings.speeds[videoSrc];
-      targetSpeed = storedSpeed || 1.0;
-      window.VSC.logger.debug(`Per-video mode: using speed ${targetSpeed} for ${videoSrc}`);
+      window.VSC.logger.debug(`Non-persistent mode: using lastSpeed ${targetSpeed} (changes won't be saved)`);
     }
 
     return targetSpeed;
@@ -105,7 +101,7 @@ class VideoController {
     window.VSC.logger.debug(`Speed variable set to: ${speed}`);
 
     // Create custom element wrapper to avoid CSS conflicts
-    const wrapper = new window.VSC.VSCControllerElement();
+    const wrapper = document.createElement('vsc-controller');
 
     // Apply all CSS classes at once to prevent race condition flash
     const cssClasses = ['vsc-controller'];
@@ -118,13 +114,7 @@ class VideoController {
 
     if (this.config.settings.startHidden || this.shouldStartHidden) {
       cssClasses.push('vsc-hidden');
-      if (this.shouldStartHidden) {
-        window.VSC.logger.debug('Starting controller hidden due to video visibility/size');
-      } else {
-        window.VSC.logger.info(
-          `Controller starting hidden due to startHidden setting: ${this.config.settings.startHidden}`
-        );
-      }
+      window.VSC.logger.debug('Starting controller hidden');
     }
     // When startHidden=false, use natural visibility (no special class needed)
 
@@ -159,9 +149,6 @@ class VideoController {
 
     // Insert into DOM based on site-specific rules
     this.insertIntoDOM(document, wrapper);
-
-    // Debug: Log final classes on controller
-    window.VSC.logger.info(`Controller classes after creation: ${wrapper.className}`);
 
     window.VSC.logger.debug('initializeControls End');
     return wrapper;
@@ -240,7 +227,7 @@ class VideoController {
           mutation.type === 'attributes' &&
           (mutation.attributeName === 'src' || mutation.attributeName === 'currentSrc')
         ) {
-          window.VSC.logger.debug('mutation of A/V element');
+          window.VSC.logger.debug('Mutation of A/V element detected');
           const controller = this.div;
           if (!mutation.target.src && !mutation.target.currentSrc) {
             controller.classList.add('vsc-nosource');
