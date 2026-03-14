@@ -61,11 +61,13 @@ class ActionHandler {
   executeAction(action, value, video, e) {
     switch (action) {
       case 'rewind':
+      case 'step-rewind':
         window.VSC.logger.debug('Rewind');
         this.seek(video, -value);
         break;
 
       case 'advance':
+      case 'step-advance':
         window.VSC.logger.debug('Fast forward');
         this.seek(video, value);
         break;
