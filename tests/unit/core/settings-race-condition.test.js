@@ -646,19 +646,20 @@ describe('SettingsRaceCondition', () => {
     const storage = getMockStorage();
     storage.keyBindings = []; // triggers init path
 
-    const writtenPayloads = [];
-    const originalSet = window.VSC.StorageManager.set;
-    window.VSC.StorageManager.set = async (data) => {
-      writtenPayloads.push(Object.keys(data));
+    const mockSet = vi.fn(async (data) => {
       return originalSet.call(window.VSC.StorageManager, data);
-    };
+    });
+    const originalSet = window.VSC.StorageManager.set;
+    window.VSC.StorageManager.set = mockSet;
 
     const config = new window.VSC.VideoSpeedConfig();
     await config.load();
     await vi.advanceTimersByTimeAsync(50);
 
     // The keyBindings init save inside load() should have gone through
-    const keyBindingsWrite = writtenPayloads.find((keys) => keys.includes('keyBindings'));
+    const keyBindingsWrite = mockSet.mock.calls
+      .map((call) => Object.keys(call[0]))
+      .find((keys) => keys.includes('keyBindings'));
     expect(keyBindingsWrite).toBeDefined();
 
     window.VSC.StorageManager.set = originalSet;
