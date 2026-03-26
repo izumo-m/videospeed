@@ -129,16 +129,10 @@ async function runTests() {
 
   if (testType === 'unit') {
     testFiles = [
-      // Migrated to vitest: all unit/core/* tests
-      'unit/observers/mutation-observer.test.js',
-      'unit/observers/audio-size-handling.test.js',
+      // Migrated to vitest: all unit/core/*, unit/observers/*, unit/utils/*, unit/ui/*
       'unit/content/inject.test.js',
       'unit/content/hydration-fix.test.js',
       'unit/content/content-entry.test.js',
-      // Migrated to vitest: logger, blacklist-regex, event-manager,
-      // event-manager-matching, recursive-shadow-dom
-      'unit/ui/drag-and-reset.test.js',
-      'unit/ui/options-recording.test.js',
       'unit/content/injection-bridge.test.js',
     ];
   } else if (testType === 'integration') {
@@ -151,9 +145,7 @@ async function runTests() {
   } else {
     // Run all tests
     testFiles = [
-      // Migrated to vitest: all unit/core/* tests
-      'unit/observers/mutation-observer.test.js',
-      'unit/observers/audio-size-handling.test.js',
+      // Migrated to vitest: all unit/core/*, unit/observers/*, unit/utils/*, unit/ui/*
       'unit/content/inject.test.js',
       'unit/content/hydration-fix.test.js',
       'unit/content/content-entry.test.js',
