@@ -7,19 +7,18 @@
     "build": "node scripts/build.mjs",
     "dev": "node scripts/build.mjs --watch",
     "prebuild": "rm -rf dist",
-    "test": "npm run build && npm run test:unit",
-    "test:unit": "node tests/run-tests.js unit",
-    "test:integration": "node tests/run-tests.js integration",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit/",
+    "test:integration": "vitest run tests/integration/",
     "test:e2e": "npm run build && node tests/e2e/run-e2e.js",
-    "test:browser": "echo 'Open tests/fixtures/test-page.html in browser'",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "serve": "python3 -m http.server 8000",
     "lint": "eslint src/**/*.js tests/**/*.js",
     "lint:fix": "eslint src/**/*.js tests/**/*.js --fix",
     "format": "prettier --write src/**/*.js tests/**/*.js",
     "zip": "npm run build && cd dist && zip -r videospeed.zip . && cd .. && echo 'Extension packaged at dist/videospeed.zip'",
-    "prepare": "husky",
-    "test:vitest": "vitest run",
-    "test:vitest:watch": "vitest"
+    "prepare": "husky"
   },
   "lint-staged": {
     "*.js": [
