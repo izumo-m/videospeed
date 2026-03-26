@@ -92,23 +92,33 @@ describe('FKeys', () => {
     });
   });
 
-  it('Blacklisted keys should be properly handled in options UI', async () => {
-    // This test verifies that blacklisted keys are rejected in the options UI
-    // The actual runtime blocking of Tab happens through browser navigation handling
+  it('Blacklisted keys should be properly handled in options UI', () => {
+    const BLACKLISTED_CODES = window.VSC.Constants.BLACKLISTED_CODES;
+    expect(BLACKLISTED_CODES).toBeDefined();
+    expect(BLACKLISTED_CODES instanceof Set).toBe(true);
 
-    // Simulate the recordKeyPress function behavior with blacklisted keys
-    const BLACKLISTED_KEYCODES = [9, 16, 17, 18, 91, 92, 93, 224];
-
-    BLACKLISTED_KEYCODES.forEach((keyCode) => {
-      const isBlacklisted = BLACKLISTED_KEYCODES.includes(keyCode);
-      expect(isBlacklisted).toBe(true);
+    // These modifier/navigation keys must be blocked
+    const expectedBlocked = [
+      'Tab',
+      'ShiftLeft',
+      'ShiftRight',
+      'ControlLeft',
+      'ControlRight',
+      'AltLeft',
+      'AltRight',
+      'MetaLeft',
+      'MetaRight',
+      'ContextMenu',
+      'CapsLock',
+    ];
+    expectedBlocked.forEach((code) => {
+      expect(BLACKLISTED_CODES.has(code)).toBe(true);
     });
 
-    // Verify that non-blacklisted keys would be accepted
-    const allowedKeys = [124, 65, 32, 13]; // F13, A, Space, Enter
-    allowedKeys.forEach((keyCode) => {
-      const isBlacklisted = BLACKLISTED_KEYCODES.includes(keyCode);
-      expect(isBlacklisted).toBe(false);
+    // F-keys and regular keys must NOT be blocked
+    const expectedAllowed = ['F13', 'KeyA', 'Space', 'Enter', 'KeyS', 'Digit1'];
+    expectedAllowed.forEach((code) => {
+      expect(BLACKLISTED_CODES.has(code)).toBe(false);
     });
   });
 

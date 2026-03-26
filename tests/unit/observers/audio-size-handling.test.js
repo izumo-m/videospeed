@@ -219,9 +219,6 @@ describe('AudioSizeHandling', () => {
     // Check that it starts visible (size no longer matters)
     expect(controller.div.classList.contains('vsc-hidden')).toBe(false);
 
-    // Verify it's not hidden (uses natural visibility)
-    expect(controller.div.classList.contains('vsc-hidden')).toBe(false);
-
     // Cleanup
     controller.remove();
     mockDOM.container.removeChild(smallAudio);

@@ -91,122 +91,80 @@ describe('Inject', () => {
   }
 
   it('onVideoFound should handle video elements without parentElement', async () => {
-    // Use the global VSC_controller instance
     extension = window.VSC_controller;
+    expect(extension).toBeDefined();
 
-    // Ensure extension is initialized
-    if (!extension) {
-      expect(false).toBe(true);
-      return;
-    }
+    const { video, parentNode } = createVideoWithoutParentElement();
 
-    try {
-      // Create a video element without parentElement but with parentNode
-      const { video, parentNode } = createVideoWithoutParentElement();
+    extension.onVideoFound(video, parentNode);
 
-      // Test the onVideoFound method directly - this is the core functionality
-      extension.onVideoFound(video, parentNode);
-
-      // Verify that the video controller was attached
-      expect(video.vsc).toBeDefined();
-      expect(video.vsc instanceof window.VSC.VideoController).toBe(true);
-
-      // Verify that the controller was initialized with the correct parent (parentNode fallback)
-      expect(video.vsc.parent).toBe(parentNode);
-    } catch (error) {
-      console.error('Test error:', error);
-      expect(false).toBe(true);
-    }
+    expect(video.vsc).toBeDefined();
+    expect(video.vsc instanceof window.VSC.VideoController).toBe(true);
+    expect(video.vsc.parent).toBe(parentNode);
   });
 
   it('onVideoFound should prefer parentElement when available', async () => {
-    // Use the global VSC_controller instance
     extension = window.VSC_controller;
+    expect(extension).toBeDefined();
 
-    // Ensure extension is initialized
-    if (!extension) {
-      expect(false).toBe(true);
-      return;
-    }
+    const video = createMockVideo();
+    const parentElement = document.createElement('div');
+    const parentNode = document.createElement('span');
 
-    try {
-      // Create a normal video element with both parentElement and parentNode
-      const video = createMockVideo();
-      const parentElement = document.createElement('div');
-      const parentNode = document.createElement('span'); // Different from parentElement
+    Object.defineProperty(video, 'parentElement', {
+      value: parentElement,
+      writable: false,
+      configurable: true,
+    });
 
-      Object.defineProperty(video, 'parentElement', {
-        value: parentElement,
-        writable: false,
-        configurable: true,
-      });
+    Object.defineProperty(video, 'parentNode', {
+      value: parentNode,
+      writable: false,
+      configurable: true,
+    });
 
-      Object.defineProperty(video, 'parentNode', {
-        value: parentNode,
-        writable: false,
-        configurable: true,
-      });
+    Object.defineProperty(video, 'isConnected', {
+      value: true,
+      writable: false,
+      configurable: true,
+    });
 
-      // Mock isConnected property for validity check
-      Object.defineProperty(video, 'isConnected', {
-        value: true,
-        writable: false,
-        configurable: true,
-      });
+    extension.onVideoFound(video, parentNode);
 
-      // Test onVideoFound with parentElement available
-      extension.onVideoFound(video, parentNode);
-
-      // Verify that the video controller was attached
-      expect(video.vsc).toBeDefined();
-
-      // Verify that the controller was initialized with video.parentElement (not the passed parent)
-      // VideoController constructor uses target.parentElement || parent
-      expect(video.vsc.parent).toBe(parentElement);
-    } catch (error) {
-      expect(false).toBe(true);
-    }
+    expect(video.vsc).toBeDefined();
+    // VideoController constructor uses target.parentElement || parent
+    expect(video.vsc.parent).toBe(parentElement);
   });
 
   it('onVideoFound should handle video with neither parentElement nor parentNode', async () => {
-    // Use the global VSC_controller instance
     extension = window.VSC_controller;
-
-    // Verify extension is available
     expect(extension).toBeDefined();
 
-    try {
-      // Create a video element with no parent references
-      const video = createMockVideo();
-      const fallbackParent = document.createElement('div');
+    const video = createMockVideo();
+    const fallbackParent = document.createElement('div');
 
-      Object.defineProperty(video, 'parentElement', {
-        value: null,
-        writable: false,
-        configurable: true,
-      });
+    Object.defineProperty(video, 'parentElement', {
+      value: null,
+      writable: false,
+      configurable: true,
+    });
 
-      Object.defineProperty(video, 'parentNode', {
-        value: null,
-        writable: false,
-        configurable: true,
-      });
+    Object.defineProperty(video, 'parentNode', {
+      value: null,
+      writable: false,
+      configurable: true,
+    });
 
-      // Mock isConnected property for validity check
-      Object.defineProperty(video, 'isConnected', {
-        value: true,
-        writable: false,
-        configurable: true,
-      });
+    Object.defineProperty(video, 'isConnected', {
+      value: true,
+      writable: false,
+      configurable: true,
+    });
 
-      // This should not throw an error even with no parent references
-      extension.onVideoFound(video, fallbackParent);
+    // Should not throw even with no parent references
+    extension.onVideoFound(video, fallbackParent);
 
-      // Verify basic functionality
-      expect(video.vsc).toBeDefined();
-      expect(video.vsc.parent).toBe(fallbackParent);
-    } catch (error) {
-      expect(false).toBe(true);
-    }
+    expect(video.vsc).toBeDefined();
+    expect(video.vsc.parent).toBe(fallbackParent);
   });
 });
