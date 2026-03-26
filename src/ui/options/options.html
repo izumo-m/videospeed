@@ -141,7 +141,12 @@
       <button id="save">Save</button>
       <button id="experimental">Show advanced features</button>
     </div>
-    <button id="restore">Restore defaults</button>
+    <div class="secondary-buttons">
+      <button id="export" class="secondary">Export</button>
+      <button id="import" class="secondary">Import</button>
+      <input type="file" id="importFile" accept=".json" hidden />
+      <button id="restore">Restore defaults</button>
+    </div>
   </div>
 
   <div id="status"></div>
