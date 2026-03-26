@@ -7,9 +7,12 @@
 import '../../utils/constants.js';
 import '../../utils/logger.js';
 
-// Storage and settings - depends on utils  
+// Storage and settings - depends on utils
 import '../../core/storage-manager.js';
 import '../../core/settings.js';
+
+// UI helpers
+import { createRow } from './row-renderer.js';
 
 // Initialize global namespace for options page
 window.VSC = window.VSC || {};
@@ -28,6 +31,37 @@ function debounce(func, wait) {
 }
 
 var keyBindings = [];
+
+// Action labels — shared by predefined and custom shortcut rows
+const ACTION_OPTIONS = [
+  ['slower', 'Decrease speed'],
+  ['faster', 'Increase speed'],
+  ['rewind', 'Rewind'],
+  ['advance', 'Advance'],
+  ['reset', 'Reset speed'],
+  ['fast', 'Preferred speed'],
+  ['muted', 'Mute'],
+  ['softer', 'Decrease volume'],
+  ['louder', 'Increase volume'],
+  ['pause', 'Pause'],
+  ['mark', 'Set marker'],
+  ['jump', 'Jump to marker'],
+  ['display', 'Show/hide controller'],
+];
+
+// Column spec for shortcut rows (used by createRow)
+const SHORTCUT_COLUMNS = [
+  { key: 'action', type: 'select', className: 'customDo', options: ACTION_OPTIONS },
+  { key: 'keyInput', type: 'text', className: 'customKey', placeholder: 'press a key' },
+  { key: 'value', type: 'text', className: 'customValue', placeholder: 'value (0.10)' },
+];
+
+// Column spec for site rule rows
+const SITE_RULE_COLUMNS = [
+  { key: 'pattern', type: 'text', className: 'rulePattern', placeholder: 'youtube.com or /regex/' },
+  { key: 'enabled', type: 'checkbox', className: 'ruleEnabled', default: true },
+  { key: 'speed', type: 'text', className: 'ruleSpeed', placeholder: '(global)' },
+];
 
 /**
  * Validate CSS using the browser's own parser.
@@ -355,34 +389,50 @@ function setShortcutInput(input, binding) {
 }
 
 
-function add_shortcut() {
-  var html = `<select class="customDo">
-    <option value="slower">Decrease speed</option>
-    <option value="faster">Increase speed</option>
-    <option value="rewind">Rewind</option>
-    <option value="advance">Advance</option>
-    <option value="reset">Reset speed</option>
-    <option value="fast">Preferred speed</option>
-    <option value="muted">Mute</option>
-    <option value="softer">Decrease volume</option>
-    <option value="louder">Increase volume</option>
-    <option value="pause">Pause</option>
-    <option value="mark">Set marker</option>
-    <option value="jump">Jump to marker</option>
-    <option value="display">Show/hide controller</option>
-    </select>
-    <input class="customKey" type="text" placeholder="press a key"/>
-    <input class="customValue" type="text" placeholder="value (0.10)"/>
-    <button class="removeParent">X</button>`;
-  var div = document.createElement("div");
-  div.setAttribute("class", "row customs");
-  div.innerHTML = html;
-  var customs_element = document.getElementById("customs");
-  customs_element.insertBefore(
-    div,
-    customs_element.children[customs_element.childElementCount - 1]
-  );
+/**
+ * Add a shortcut row (custom, not predefined).
+ * @param {Object} [data] - Optional initial data { action, value }
+ * @returns {HTMLElement} The created row
+ */
+function add_shortcut(data = {}) {
+  const container = document.getElementById('shortcuts-container');
+  const row = createRow(container, SHORTCUT_COLUMNS, data, {
+    className: 'customs',
+    removable: true,
+  });
+  // Hide value input for actions that don't need values
+  const action = data.action || row.querySelector('.customDo').value;
+  if (window.VSC.Constants.CUSTOM_ACTIONS_NO_VALUES.includes(action)) {
+    row.querySelector('.customValue').style.display = 'none';
+  }
+  return row;
+}
 
+/**
+ * Add a predefined shortcut row (fixed action, no remove button).
+ * @param {Object} data - Binding data { action, value, ... }
+ * @returns {HTMLElement} The created row
+ */
+function add_predefined_shortcut(data) {
+  const container = document.getElementById('shortcuts-container');
+  const row = createRow(container, SHORTCUT_COLUMNS, { action: data.action }, {
+    className: 'customs',
+    id: data.action,
+    removable: false,
+  });
+  // Predefined rows: lock the action dropdown
+  const select = row.querySelector('.customDo');
+  select.disabled = true;
+  // Set key input
+  setShortcutInput(row.querySelector('.customKey'), data);
+  // Set value input
+  const valueInput = row.querySelector('.customValue');
+  valueInput.value = data.value;
+  // Hide value input for actions that don't need values
+  if (window.VSC.Constants.CUSTOM_ACTIONS_NO_VALUES.includes(data.action)) {
+    valueInput.style.display = 'none';
+  }
+  return row;
 }
 
 function createKeyBindings(item) {
@@ -409,47 +459,103 @@ function createKeyBindings(item) {
   keyBindings.push(binding);
 }
 
+// --- Site rule helpers ---
+
+/**
+ * Add a site rule row to the container.
+ * @param {Object} [data] - { pattern, enabled, speed }
+ * @returns {HTMLElement}
+ */
+function add_site_rule(data = { enabled: true }) {
+  const container = document.getElementById('site-rules-container');
+  const speedDisplay = (data.speed != null) ? data.speed : undefined;
+  return createRow(container, SITE_RULE_COLUMNS,
+    { pattern: data.pattern, enabled: data.enabled, speed: speedDisplay },
+    { className: 'site-rule', removable: true });
+}
+
+/**
+ * Parse a speed input string.
+ * Returns the numeric value, or null if empty/invalid.
+ */
+function parseSpeed(s) {
+  if (typeof s !== 'string') return s ?? null;
+  const trimmed = s.trim();
+  if (trimmed === '') return null;
+  const v = parseFloat(trimmed);
+  return isNaN(v) ? null : v;
+}
+
+/**
+ * Collect site rules from the DOM.
+ * @returns {Array<{pattern: string, enabled: boolean, speed: number|null}>}
+ */
+function collectSiteRules() {
+  const container = document.getElementById('site-rules-container');
+  return Array.from(container.querySelectorAll('.row.site-rule')).map(row => ({
+    pattern: row.querySelector('.rulePattern').value.trim(),
+    enabled: row.querySelector('.ruleEnabled').checked,
+    speed: parseSpeed(row.querySelector('.ruleSpeed').value),
+  })).filter(r => r.pattern);
+}
+
 // Validates settings before saving
 function validate() {
   var valid = true;
   var status = document.getElementById("status");
-  var blacklist = document.getElementById("blacklist");
 
   // Clear any existing timeout for validation errors
   if (window.validationTimeout) {
     clearTimeout(window.validationTimeout);
   }
 
-  blacklist.value.split("\n").forEach((match) => {
-    match = match.replace(window.VSC.Constants.regStrip, "");
+  const regEndsWithFlags = window.VSC.Constants.regEndsWithFlags;
 
-    if (match.startsWith("/")) {
+  // Validate site rules
+  const rules = collectSiteRules();
+  for (const rule of rules) {
+    // Validate regex patterns
+    if (rule.pattern.startsWith('/')) {
       try {
-        var parts = match.split("/");
-
-        if (parts.length < 3)
-          throw "invalid regex";
-
-        var flags = parts.pop();
-        var regex = parts.slice(1).join("/");
-
-        var regexp = new RegExp(regex, flags);
+        const parts = rule.pattern.split('/');
+        if (parts.length < 3) throw 'invalid regex';
+        const hasFlags = regEndsWithFlags.test(rule.pattern);
+        const flags = hasFlags ? parts.pop() : '';
+        const regex = parts.slice(1, hasFlags ? undefined : -1).join('/');
+        if (!regex) throw 'empty regex';
+        new RegExp(regex, flags);
       } catch (err) {
         status.textContent =
-          "Error: Invalid blacklist regex: \"" + match + "\". Unable to save. Try wrapping it in foward slashes.";
+          'Error: Invalid site rule regex: "' + rule.pattern + '". Unable to save.';
         status.classList.add("show", "error");
         valid = false;
-
-        // Auto-hide validation error after 5 seconds
         window.validationTimeout = setTimeout(function () {
           status.textContent = "";
           status.classList.remove("show", "error");
         }, 5000);
-
-        return;
+        return valid;
       }
     }
-  });
+
+    // Validate speed range
+    if (rule.speed != null) {
+      if (rule.speed < window.VSC.Constants.SPEED_LIMITS.MIN ||
+          rule.speed > window.VSC.Constants.SPEED_LIMITS.MAX) {
+        status.textContent =
+          'Error: Speed for "' + rule.pattern + '" must be between ' +
+          window.VSC.Constants.SPEED_LIMITS.MIN + ' and ' +
+          window.VSC.Constants.SPEED_LIMITS.MAX + '.';
+        status.classList.add("show", "error");
+        valid = false;
+        window.validationTimeout = setTimeout(function () {
+          status.textContent = "";
+          status.classList.remove("show", "error");
+        }, 5000);
+        return valid;
+      }
+    }
+  }
+
   return valid;
 }
 
@@ -477,7 +583,7 @@ async function save_options() {
     var controllerOpacity = Number(document.getElementById("controllerOpacity").value);
     var controllerButtonSize = Number(document.getElementById("controllerButtonSize").value);
     var logLevel = parseInt(document.getElementById("logLevel").value);
-    var blacklist = document.getElementById("blacklist").value;
+    var siteRules = collectSiteRules();
     var controllerCSS = document.getElementById("controllerCSS").value;
 
     // Validate CSS syntax — block save on parse error
@@ -518,7 +624,7 @@ async function save_options() {
       controllerButtonSize: controllerButtonSize,
       logLevel: logLevel,
       keyBindings: keyBindings,
-      blacklist: blacklist.replace(window.VSC.Constants.regStrip, ""),
+      siteRules: siteRules,
       controllerCSS: controllerCSS,
     };
 
@@ -566,49 +672,31 @@ async function restore_options() {
     document.getElementById("controllerOpacity").value = storage.controllerOpacity;
     document.getElementById("controllerButtonSize").value = storage.controllerButtonSize;
     document.getElementById("logLevel").value = storage.logLevel;
-    document.getElementById("blacklist").value = storage.blacklist;
     document.getElementById("controllerCSS").value =
       storage.controllerCSS ?? window.VSC.Constants.DEFAULT_CONTROLLER_CSS;
 
-    // Process key bindings
-    const keyBindings = storage.keyBindings || window.VSC.Constants.DEFAULT_SETTINGS.keyBindings;
+    // Render site rules
+    const siteRules = storage.siteRules || window.VSC.Constants.DEFAULT_SETTINGS.siteRules;
+    const rulesContainer = document.getElementById('site-rules-container');
+    // Clear existing rule rows but keep the header
+    rulesContainer.querySelectorAll('.row.site-rule').forEach(r => r.remove());
+    for (const rule of siteRules) {
+      add_site_rule(rule);
+    }
 
-    for (let i in keyBindings) {
-      var item = keyBindings[i];
+    // Process key bindings — all rows rendered dynamically
+    const bindings = storage.keyBindings || window.VSC.Constants.DEFAULT_SETTINGS.keyBindings;
 
+    // Clear existing shortcut rows (handles restore_defaults re-render)
+    const shortcutsContainer = document.getElementById('shortcuts-container');
+    shortcutsContainer.innerHTML = '';
+
+    for (const item of bindings) {
       if (item.predefined) {
-        // Handle predefined shortcuts
-        if (window.VSC.Constants.CUSTOM_ACTIONS_NO_VALUES.includes(item["action"])) {
-          const valueInput = document.querySelector("#" + item["action"] + " .customValue");
-          if (valueInput) {
-            valueInput.style.display = "none";
-          }
-        }
-
-        const keyInput = document.querySelector("#" + item["action"] + " .customKey");
-        const valueInput = document.querySelector("#" + item["action"] + " .customValue");
-
-        if (keyInput) {
-          setShortcutInput(keyInput, item);
-        }
-        if (valueInput) {
-          valueInput.value = item["value"];
-        }
+        add_predefined_shortcut(item);
       } else {
-        // Handle custom shortcuts
-        add_shortcut();
-        const dom = document.querySelector(".customs:last-of-type");
-        dom.querySelector(".customDo").value = item["action"];
-
-        if (window.VSC.Constants.CUSTOM_ACTIONS_NO_VALUES.includes(item["action"])) {
-          const valueInput = dom.querySelector(".customValue");
-          if (valueInput) {
-            valueInput.style.display = "none";
-          }
-        }
-
-        setShortcutInput(dom.querySelector(".customKey"), item);
-        dom.querySelector(".customValue").value = item["value"];
+        const row = add_shortcut({ action: item.action, value: item.value });
+        setShortcutInput(row.querySelector('.customKey'), item);
       }
     }
   } catch (error) {
@@ -641,12 +729,7 @@ async function restore_defaults() {
     const ok = await window.VSC.videoSpeedConfig.save(defaults);
     if (!ok) throw new Error('failed to write defaults to storage');
 
-    // Remove custom shortcuts from UI
-    document
-      .querySelectorAll(".removeParent")
-      .forEach((button) => button.click());
-
-    // Reload the options page
+    // Reload the options page (clears and re-renders all shortcut rows)
     await restore_options();
 
     status.textContent = "Default options restored";
@@ -790,17 +873,13 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   await restore_options();
 
-  // Disable action dropdowns for predefined shortcuts
-  document.querySelectorAll('.row.customs[id] .customDo').forEach(select => {
-    select.disabled = true;
-  });
-
   document.getElementById("save").addEventListener("click", async (e) => {
     e.preventDefault();
     await save_options();
   });
 
-  document.getElementById("add").addEventListener("click", add_shortcut);
+  document.getElementById("add").addEventListener("click", () => add_shortcut());
+  document.getElementById("add-site-rule").addEventListener("click", () => add_site_rule());
 
   document.getElementById("restore").addEventListener("click", async (e) => {
     e.preventDefault();
@@ -871,12 +950,13 @@ document.addEventListener("DOMContentLoaded", async function () {
   });
   document.addEventListener("click", (event) => {
     eventCaller(event, "removeParent", function () {
-      event.target.parentNode.remove();
+      event.target.closest('.row').remove();
     });
   });
   document.addEventListener("change", (event) => {
     eventCaller(event, "customDo", function () {
-      const valueInput = event.target.nextElementSibling.nextElementSibling;
+      const row = event.target.closest('.row');
+      const valueInput = row.querySelector('.customValue');
       if (window.VSC.Constants.CUSTOM_ACTIONS_NO_VALUES.includes(event.target.value)) {
         valueInput.style.display = "none";
         valueInput.value = 0;
