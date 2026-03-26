@@ -230,7 +230,6 @@ runner.test('Race 5: options page full settings save does not revert speed', asy
   // It builds settingsToSave from form values, which does NOT include lastSpeed
   const settingsFromForm = {
     rememberSpeed: true,
-    forceLastSavedSpeed: false,
     audioBoolean: true,
     startHidden: false,
     controllerOpacity: 0.5,

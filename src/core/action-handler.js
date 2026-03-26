@@ -428,7 +428,7 @@ class ActionHandler {
     // Round to 2 decimal places to avoid floating point issues
     targetSpeed = Number(targetSpeed.toFixed(2));
 
-    // Note: forceLastSavedSpeed is enforced upstream in fight detection (event-manager.js).
+    // Fight detection is enforced upstream in event-manager.js.
     // External changes that reach here have already been approved (fight surrendered or speed matched).
     this.setSpeed(video, targetSpeed, source);
   }

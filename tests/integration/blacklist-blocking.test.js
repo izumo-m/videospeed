@@ -95,7 +95,6 @@ runner.test('Settings passed to page context should not contain blacklist or ena
     enabled: true,
     blacklist: 'youtube.com\nnetflix.com',
     rememberSpeed: true,
-    forceLastSavedSpeed: false,
     audioBoolean: true,
     startHidden: false,
     controllerOpacity: 0.3,

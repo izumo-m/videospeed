@@ -486,7 +486,6 @@ async function save_options() {
     );
 
     var rememberSpeed = document.getElementById("rememberSpeed").checked;
-    var forceLastSavedSpeed = document.getElementById("forceLastSavedSpeed").checked;
     var audioBoolean = document.getElementById("audioBoolean").checked;
     var startHidden = document.getElementById("startHidden").checked;
     var controllerOpacity = Number(document.getElementById("controllerOpacity").value);
@@ -526,7 +525,6 @@ async function save_options() {
     // Use VideoSpeedConfig to save settings (sync storage)
     const settingsToSave = {
       rememberSpeed: rememberSpeed,
-      forceLastSavedSpeed: forceLastSavedSpeed,
       audioBoolean: audioBoolean,
       startHidden: startHidden,
       controllerOpacity: controllerOpacity,
@@ -575,7 +573,6 @@ async function restore_options() {
     const storage = window.VSC.videoSpeedConfig.settings;
 
     document.getElementById("rememberSpeed").checked = storage.rememberSpeed;
-    document.getElementById("forceLastSavedSpeed").checked = storage.forceLastSavedSpeed;
     document.getElementById("audioBoolean").checked = storage.audioBoolean;
     document.getElementById("startHidden").checked = storage.startHidden;
     document.getElementById("controllerOpacity").value = storage.controllerOpacity;

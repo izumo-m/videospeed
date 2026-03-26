@@ -102,7 +102,6 @@ runner.test('Full flow: external change → force mode → restore → storage',
   const config = window.VSC.videoSpeedConfig;
   await config.load();
   config.settings.rememberSpeed = true;
-  config.settings.forceLastSavedSpeed = true;
   config.settings.lastSpeed = 2.0;
 
   const eventManager = new window.VSC.EventManager(config, null);
