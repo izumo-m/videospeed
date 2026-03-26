@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 /**
  * Tests for keyboard shortcuts saving fix
  * Verifies the resolution of the dual storage system issue

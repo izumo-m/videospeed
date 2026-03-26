@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 /**
  * Unit tests for settings management
  * Using global variables to match browser extension architecture
@@ -75,8 +74,6 @@ describe('Settings', () => {
   });
 
   it('VideoSpeedConfig should have state manager available', () => {
-    const config = window.VSC.videoSpeedConfig;
-
     // Verify state manager is available (media tracking moved there)
     expect(window.VSC.stateManager).toBeDefined();
     expect(typeof window.VSC.stateManager.getAllMediaElements).toBe('function');

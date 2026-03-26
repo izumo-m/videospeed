@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 /**
  * Tests for v1→v2 key binding migration (migrateKeyBindingsV2)
  *

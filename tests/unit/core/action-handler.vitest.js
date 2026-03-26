@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 /**
  * Unit tests for ActionHandler class
  * Using global variables to match browser extension architecture

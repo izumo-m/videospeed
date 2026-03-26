@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 /**
  * Tests for F13-F24 and special key support
  * Verifies that the expanded keyboard handling works correctly
@@ -101,13 +100,6 @@ describe('FKeys', () => {
     const BLACKLISTED_KEYCODES = [9, 16, 17, 18, 91, 92, 93, 224];
 
     BLACKLISTED_KEYCODES.forEach((keyCode) => {
-      const _mockEvent = {
-        keyCode: keyCode,
-        preventDefault: () => {},
-        stopPropagation: () => {},
-      };
-
-      // In the real options.js, blacklisted keys would be prevented
       const isBlacklisted = BLACKLISTED_KEYCODES.includes(keyCode);
       expect(isBlacklisted).toBe(true);
     });
@@ -210,9 +202,6 @@ describe('FKeys', () => {
     // F13-F24 should have aliases
     for (let i = 13; i <= 24; i++) {
       const keyCode = 111 + i; // F13=124, etc.
-      const _expectedAlias = `F${i}`;
-
-      // This test would fail with the old code but passes with our updates
       const hasAlias = keyCodeAliases[keyCode] !== undefined || keyCode === 124 + (i - 13);
       expect(hasAlias).toBe(true);
     }
