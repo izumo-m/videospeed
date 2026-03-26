@@ -3,6 +3,7 @@
  * Tests cooldown behavior to prevent rapid changes
  */
 
+import { vi } from 'vitest';
 import {
   installChromeMock,
   cleanupChromeMock,
@@ -11,11 +12,13 @@ import {
 import { createMockVideo } from '../../helpers/test-utils.js';
 describe('EventManager', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     installChromeMock();
     resetMockStorage();
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     cleanupChromeMock();
   });
 
@@ -80,7 +83,7 @@ describe('EventManager', () => {
     expect(eventManager.coolDown).not.toBe(false);
 
     const waitMs = (window.VSC.EventManager?.BASE_COOLDOWN_MS || 50) + 50;
-    await new Promise((resolve) => setTimeout(resolve, waitMs));
+    await vi.advanceTimersByTimeAsync(waitMs);
 
     expect(eventManager.coolDown).toBe(false);
   });
@@ -96,7 +99,7 @@ describe('EventManager', () => {
     const firstTimeout = eventManager.coolDown;
     expect(firstTimeout).not.toBe(false);
 
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await vi.advanceTimersByTimeAsync(100);
 
     eventManager.refreshCoolDown();
     const secondTimeout = eventManager.coolDown;
@@ -338,7 +341,7 @@ describe('EventManager', () => {
     expect(eventManager.fightCount).toBe(2);
 
     const fightWindowMs = window.VSC.EventManager.FIGHT_WINDOW_MS;
-    await new Promise((resolve) => setTimeout(resolve, fightWindowMs + 50));
+    await vi.advanceTimersByTimeAsync(fightWindowMs + 50);
 
     expect(eventManager.fightCount).toBe(0);
   });
