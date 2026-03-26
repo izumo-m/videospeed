@@ -82,6 +82,9 @@
       ]
     }
   },
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "prettier": {
     "singleQuote": true,
     "semi": true,
