@@ -129,15 +129,7 @@ async function runTests() {
 
   if (testType === 'unit') {
     testFiles = [
-      'unit/core/settings.test.js',
-      'unit/core/action-handler.test.js',
-      'unit/core/video-controller.test.js',
-      'unit/core/icon-integration.test.js',
-      'unit/core/keyboard-shortcuts-saving.test.js',
-      'unit/core/f-keys.test.js',
-      'unit/core/migration.test.js',
-      'unit/core/settings-race-condition.test.js',
-      'unit/core/controller-css.test.js',
+      // Migrated to vitest: all unit/core/* tests
       'unit/observers/mutation-observer.test.js',
       'unit/observers/audio-size-handling.test.js',
       'unit/content/inject.test.js',
@@ -159,15 +151,7 @@ async function runTests() {
   } else {
     // Run all tests
     testFiles = [
-      'unit/core/settings.test.js',
-      'unit/core/action-handler.test.js',
-      'unit/core/video-controller.test.js',
-      'unit/core/icon-integration.test.js',
-      'unit/core/keyboard-shortcuts-saving.test.js',
-      'unit/core/f-keys.test.js',
-      'unit/core/migration.test.js',
-      'unit/core/settings-race-condition.test.js',
-      'unit/core/controller-css.test.js',
+      // Migrated to vitest: all unit/core/* tests
       'unit/observers/mutation-observer.test.js',
       'unit/observers/audio-size-handling.test.js',
       'unit/content/inject.test.js',
