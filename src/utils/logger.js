@@ -58,16 +58,18 @@ if (!window.VSC.logger) {
      * @private
      */
     formatVideoId(video) {
-      if (!video) return 'V?';
-      
+      if (!video) {
+        return 'V?';
+      }
+
       const isAudio = video.tagName === 'AUDIO';
       const prefix = isAudio ? 'A' : 'V';
-      
+
       // Use controller ID if available (this is what we want!)
       if (video.vsc?.controllerId) {
         return `${prefix}${video.vsc.controllerId}`;
       }
-      
+
       // Fallback for videos without controllers
       return `${prefix}?`;
     }
@@ -129,7 +131,9 @@ if (!window.VSC.logger) {
      * @private
      */
     _emit(message, logLevel) {
-      if (this.verbosity < logLevel) return;
+      if (this.verbosity < logLevel) {
+        return;
+      }
 
       const LOG_LEVELS = window.VSC.Constants.LOG_LEVELS;
       const context = this.generateContext();

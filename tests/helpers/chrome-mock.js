@@ -69,7 +69,9 @@ export const chromeMock = {
       },
       removeListener: (callback) => {
         const idx = onChangedListeners.indexOf(callback);
-        if (idx !== -1) onChangedListeners.splice(idx, 1);
+        if (idx !== -1) {
+          onChangedListeners.splice(idx, 1);
+        }
       },
     },
   },
@@ -128,7 +130,7 @@ export function resetMockStorage() {
     lastSpeed: 1.0,
     keyBindings: [],
     rememberSpeed: false,
-  
+
     audioBoolean: false,
     startHidden: false,
     controllerOpacity: 0.3,

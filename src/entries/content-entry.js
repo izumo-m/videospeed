@@ -4,7 +4,7 @@
  */
 
 import { injectScript, setupMessageBridge } from '../content/injection-bridge.js';
-import { matchSiteRule, isBlacklisted } from '../utils/site-pattern.js';
+import { isBlacklisted } from '../utils/blacklist.js';
 import { DEFAULT_CONTROLLER_CSS } from '../styles/controller-css-defaults.js';
 
 async function init() {
@@ -24,31 +24,13 @@ async function init() {
       return;
     }
 
-    // Check siteRules first (new structured format), fall back to legacy blacklist
-    const href = location.href;
-    let siteDisabled = false;
-
-    if (settings.siteRules) {
-      const match = matchSiteRule(settings.siteRules, href);
-      if (match && !match.enabled) {
-        siteDisabled = true;
-      } else if (match?.speed != null) {
-        // Inject matched site speed into settings bridge
-        settings.siteDefaultSpeed = match.speed;
-      }
-    } else if (isBlacklisted(settings.blacklist, href)) {
-      siteDisabled = true;
+    // Early exit if site is blacklisted
+    if (isBlacklisted(settings.blacklist, location.href)) {
+      return;
     }
 
-    if (siteDisabled) return;
-
-    // Clean up keys not needed in page context
-    delete settings.siteRules;
     delete settings.blacklist;
     delete settings.enabled;
-
-    // Store controllerCSS before deleting from bridge payload
-    const controllerCSS = settings.controllerCSS ?? DEFAULT_CONTROLLER_CSS;
     delete settings.controllerCSS;
 
     // Bridge settings to page context via DOM (only synchronous path between Chrome's isolated worlds)
@@ -67,6 +49,7 @@ async function init() {
     // are in the DOM before any controller elements are created.
     // Base rule is in inject.css (manifest CSS, always available).
     // This adds site-specific overrides that layer on top.
+    const controllerCSS = settings.controllerCSS ?? DEFAULT_CONTROLLER_CSS;
     const styleEl = document.createElement('style');
     styleEl.id = 'vsc-controller-css';
     styleEl.textContent = controllerCSS;
@@ -78,54 +61,39 @@ async function init() {
     // Set up bi-directional message bridge for popup ↔ page communication
     const bridge = setupMessageBridge();
 
-    // Track whether this site is currently active (for teardown/reinit decisions)
-    let isActive = true;
-
-    // Lifecycle watcher: tear down or reinit when siteRules/enabled changes.
+    // Lifecycle watcher: tear down or reinit when blacklist/enabled changes.
     // The content script is the lifecycle owner — it gates initialization above,
     // and it gates teardown/reinit here, using the same bridge the popup uses for commands.
     chrome.storage.onChanged.addListener((changes, namespace) => {
-      if (namespace !== 'sync') return;
+      if (namespace !== 'sync') {
+        return;
+      }
 
       // Live-update controller CSS when changed from options page
       if (changes.controllerCSS?.newValue !== undefined) {
         const el = document.getElementById('vsc-controller-css');
-        if (el) el.textContent = changes.controllerCSS.newValue;
+        if (el) {
+          el.textContent = changes.controllerCSS.newValue;
+        }
       }
 
-      // Check extension-level disable
       const disabled = 'enabled' in changes && changes.enabled.newValue === false;
-      const reEnabled = 'enabled' in changes && changes.enabled.newValue === true;
+      const blacklisted =
+        'blacklist' in changes && isBlacklisted(changes.blacklist.newValue, location.href);
 
-      // Check siteRules changes (new format) or legacy blacklist changes
-      let nowDisabledBySite = false;
-      let nowEnabledBySite = false;
-
-      if ('siteRules' in changes) {
-        const newRules = changes.siteRules.newValue ?? [];
-        const match = matchSiteRule(newRules, href);
-        const siteOff = match && !match.enabled;
-        nowDisabledBySite = siteOff && isActive;
-        nowEnabledBySite = !siteOff && !isActive;
-      } else if ('blacklist' in changes) {
-        // Legacy fallback
-        const bl = isBlacklisted(changes.blacklist.newValue, href);
-        nowDisabledBySite = bl && isActive;
-        nowEnabledBySite = !bl && !isActive;
-      }
-
-      if (disabled || nowDisabledBySite) {
-        isActive = false;
+      if (disabled || blacklisted) {
         bridge.sendCommand('VSC_TEARDOWN');
         return;
       }
 
-      if (reEnabled || nowEnabledBySite) {
-        isActive = true;
+      const reEnabled = 'enabled' in changes && changes.enabled.newValue === true;
+      const unblacklisted =
+        'blacklist' in changes && !isBlacklisted(changes.blacklist.newValue, location.href);
+
+      if (reEnabled || unblacklisted) {
         bridge.sendCommand('VSC_REINIT');
       }
     });
-
   } catch (error) {
     console.error('[VSC] Failed to initialize:', error);
   }
