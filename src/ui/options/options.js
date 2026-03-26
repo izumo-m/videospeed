@@ -666,6 +666,111 @@ async function restore_defaults() {
   }
 }
 
+/**
+ * Export all settings as a JSON file download.
+ */
+async function export_settings() {
+  var status = document.getElementById("status");
+  try {
+    // Ensure config is loaded
+    if (!window.VSC.videoSpeedConfig) {
+      window.VSC.videoSpeedConfig = new window.VSC.VideoSpeedConfig();
+    }
+    await window.VSC.videoSpeedConfig.load();
+    const settings = { ...window.VSC.videoSpeedConfig.settings };
+
+    const blob = new Blob([JSON.stringify(settings, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "videospeed-settings.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    status.textContent = "Settings exported";
+    status.classList.remove("error");
+    status.classList.add("show", "success");
+    setTimeout(function () {
+      status.textContent = "";
+      status.classList.remove("show", "success");
+    }, 2000);
+  } catch (error) {
+    console.error("Failed to export settings:", error);
+    status.textContent = "Error exporting settings: " + error.message;
+    status.classList.add("show", "error");
+    setTimeout(function () {
+      status.textContent = "";
+      status.classList.remove("show", "error");
+    }, 3000);
+  }
+}
+
+/**
+ * Import settings from a JSON file. Validates structure before applying.
+ */
+function import_settings() {
+  document.getElementById("importFile").click();
+}
+
+async function handleImportFile(event) {
+  var status = document.getElementById("status");
+  var file = event.target.files[0];
+  if (!file) return;
+
+  // Reset the input so the same file can be re-selected
+  event.target.value = "";
+
+  try {
+    var text = await file.text();
+    var imported;
+    try {
+      imported = JSON.parse(text);
+    } catch (e) {
+      throw new Error("File is not valid JSON");
+    }
+
+    if (!imported || typeof imported !== "object" || !Array.isArray(imported.keyBindings)) {
+      throw new Error("File does not look like a Video Speed Controller settings file");
+    }
+
+    // Ensure config is initialized
+    if (!window.VSC.videoSpeedConfig) {
+      window.VSC.videoSpeedConfig = new window.VSC.VideoSpeedConfig();
+    }
+
+    // Clear existing storage and write the imported settings
+    await window.VSC.StorageManager.clear();
+    const ok = await window.VSC.videoSpeedConfig.save(imported);
+    if (!ok) throw new Error("Failed to write imported settings to storage");
+
+    // Remove custom shortcut rows before reloading UI
+    document
+      .querySelectorAll(".removeParent")
+      .forEach(function (button) { button.click(); });
+
+    // Reload settings into the UI
+    await restore_options();
+
+    status.textContent = "Settings imported successfully";
+    status.classList.remove("error");
+    status.classList.add("show", "success");
+    setTimeout(function () {
+      status.textContent = "";
+      status.classList.remove("show", "success");
+    }, 2000);
+  } catch (error) {
+    console.error("Failed to import settings:", error);
+    status.textContent = "Import failed: " + error.message;
+    status.classList.add("show", "error");
+    setTimeout(function () {
+      status.textContent = "";
+      status.classList.remove("show", "error");
+    }, 4000);
+  }
+}
+
 function toggle_experimental() {
   const button = document.getElementById("experimental");
   const advancedRows = document.querySelectorAll('.row.advanced-feature');
@@ -712,6 +817,18 @@ document.addEventListener("DOMContentLoaded", async function () {
     e.preventDefault();
     await restore_defaults();
   });
+
+  document.getElementById("export").addEventListener("click", (e) => {
+    e.preventDefault();
+    export_settings();
+  });
+
+  document.getElementById("import").addEventListener("click", (e) => {
+    e.preventDefault();
+    import_settings();
+  });
+
+  document.getElementById("importFile").addEventListener("change", handleImportFile);
 
   document.getElementById("experimental").addEventListener("click", toggle_experimental);
 

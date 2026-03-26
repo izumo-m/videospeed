@@ -463,6 +463,11 @@ button:focus-visible {
   gap: 12px;
 }
 
+.secondary-buttons {
+  display: flex;
+  gap: 12px;
+}
+
 /* Status message */
 #status {
   display: block;
@@ -682,6 +687,15 @@ button:focus-visible {
   }
 
   .primary-buttons button {
+    flex: 1;
+  }
+
+  .secondary-buttons {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .secondary-buttons button {
     flex: 1;
   }
 }
