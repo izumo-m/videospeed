@@ -128,13 +128,8 @@ async function runTests() {
   let testFiles = [];
 
   if (testType === 'unit') {
-    testFiles = [
-      // Migrated to vitest: all unit/core/*, unit/observers/*, unit/utils/*, unit/ui/*
-      'unit/content/inject.test.js',
-      'unit/content/hydration-fix.test.js',
-      'unit/content/content-entry.test.js',
-      'unit/content/injection-bridge.test.js',
-    ];
+    // All unit tests migrated to vitest
+    testFiles = [];
   } else if (testType === 'integration') {
     testFiles = [
       'integration/module-integration.test.js',
@@ -143,22 +138,12 @@ async function runTests() {
       'integration/blacklist-blocking.test.js',
     ];
   } else {
-    // Run all tests
+    // Run all tests — unit tests migrated to vitest, only integration remains here
     testFiles = [
-      // Migrated to vitest: all unit/core/*, unit/observers/*, unit/utils/*, unit/ui/*
-      'unit/content/inject.test.js',
-      'unit/content/hydration-fix.test.js',
-      'unit/content/content-entry.test.js',
-      // Migrated to vitest: logger, blacklist-regex, event-manager,
-      // event-manager-matching, recursive-shadow-dom
-      'unit/ui/drag-and-reset.test.js',
       'integration/module-integration.test.js',
       'integration/ui-to-storage-flow.test.js',
       'integration/state-manager-integration.test.js',
       'integration/blacklist-blocking.test.js',
-      // injection-bridge must run last: its module import permanently registers
-      // window message listeners that interfere with subsequent test suites
-      'unit/content/injection-bridge.test.js',
     ];
   }
 
