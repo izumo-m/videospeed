@@ -10,17 +10,14 @@ import {
   cleanupChromeMock,
   resetMockStorage,
 } from '../../helpers/chrome-mock.js';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { loadMinimalModules } from '../../helpers/module-loader.js';
-
-await loadMinimalModules();
-
 // --- Helpers that mirror background.js migration logic ---
+// Lazy accessors — window.VSC is populated by vitest-setup.js beforeAll
 
-const PREDEFINED_CODE_MAP = window.VSC.Constants.PREDEFINED_CODE_MAP;
-const KEYCODE_TO_CODE = window.VSC.Constants.KEYCODE_TO_CODE;
-const PREDEFINED_ACTIONS = window.VSC.Constants.PREDEFINED_ACTIONS;
-const displayKeyFromCode = window.VSC.Constants.displayKeyFromCode;
+const Constants = () => window.VSC.Constants;
+const PREDEFINED_CODE_MAP = () => Constants().PREDEFINED_CODE_MAP;
+const KEYCODE_TO_CODE = () => Constants().KEYCODE_TO_CODE;
+const PREDEFINED_ACTIONS = () => Constants().PREDEFINED_ACTIONS;
+const displayKeyFromCode = (...args) => Constants().displayKeyFromCode(...args);
 
 const DEFAULT_V2_BINDINGS = {
   slower: { code: 'KeyS', key: 83, keyCode: 83, displayKey: 's', value: 0.1, force: false },
@@ -59,13 +56,13 @@ function migrateBindings(storage) {
     }
     const legacyKey = binding.key;
 
-    if (binding.predefined && PREDEFINED_CODE_MAP[legacyKey]) {
-      const mapped = PREDEFINED_CODE_MAP[legacyKey];
+    if (binding.predefined && PREDEFINED_CODE_MAP()[legacyKey]) {
+      const mapped = PREDEFINED_CODE_MAP()[legacyKey];
       predefinedCount++;
       return { ...binding, code: mapped.code, keyCode: legacyKey, displayKey: mapped.displayKey };
     }
 
-    const code = KEYCODE_TO_CODE[legacyKey];
+    const code = KEYCODE_TO_CODE()[legacyKey];
     if (code) {
       customCount++;
       return { ...binding, code, keyCode: legacyKey, displayKey: displayKeyFromCode(code) };
@@ -76,7 +73,7 @@ function migrateBindings(storage) {
   });
 
   const existingActions = new Set(migrated.map((b) => b.action));
-  for (const action of PREDEFINED_ACTIONS) {
+  for (const action of PREDEFINED_ACTIONS()) {
     if (!existingActions.has(action)) {
       migrated.push({ action, ...DEFAULT_V2_BINDINGS[action], predefined: true });
     }

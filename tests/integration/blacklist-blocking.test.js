@@ -3,14 +3,9 @@
  * Tests that controller does not load on blacklisted sites
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { installChromeMock, cleanupChromeMock, resetMockStorage } from '../helpers/chrome-mock.js';
 import { createMockVideo, createMockDOM } from '../helpers/test-utils.js';
-import { loadCoreModules } from '../helpers/module-loader.js';
 import { isBlacklisted } from '../../src/utils/blacklist.js';
-
-await loadCoreModules();
-
 describe('BlacklistBlocking', () => {
   let mockDOM;
 

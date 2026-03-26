@@ -3,7 +3,6 @@
  * Tests blacklist filtering and settings stripping
  */
 
-import { describe, it, expect } from 'vitest';
 import { isBlacklisted } from '../../../src/utils/blacklist.js';
 
 describe('ContentEntry', () => {

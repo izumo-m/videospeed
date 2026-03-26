@@ -8,7 +8,6 @@ import {
   cleanupChromeMock,
   resetMockStorage,
 } from '../../helpers/chrome-mock.js';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { setupMessageBridge } from '../../../src/content/injection-bridge.js';
 
 let bridge;

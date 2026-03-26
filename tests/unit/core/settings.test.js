@@ -8,11 +8,9 @@ import {
   cleanupChromeMock,
   resetMockStorage,
 } from '../../helpers/chrome-mock.js';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { loadCoreModules } from '../../helpers/module-loader.js';
+import { vi } from 'vitest';
 
 // Load all required modules
-await loadCoreModules();
 
 describe('Settings', () => {
   beforeEach(() => {

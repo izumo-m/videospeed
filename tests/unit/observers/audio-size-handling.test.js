@@ -3,12 +3,9 @@
  */
 
 import { installChromeMock, cleanupChromeMock } from '../../helpers/chrome-mock.js';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createMockDOM } from '../../helpers/test-utils.js';
-import { loadCoreModules } from '../../helpers/module-loader.js';
 
 // Load all required modules
-await loadCoreModules();
 
 let mockDOM;
 

@@ -51,7 +51,11 @@ export const chromeMock = {
           }
         }, 5);
 
-        setTimeout(() => callback && callback(), 10);
+        setTimeout(() => {
+          if (globalThis.chrome && callback) {
+            callback();
+          }
+        }, 10);
       },
       remove: (keys, callback) => {
         const keysArray = Array.isArray(keys) ? keys : [keys];

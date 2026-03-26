@@ -8,5 +8,17 @@ export default defineConfig({
     setupFiles: ['./tests/helpers/vitest-setup.js'],
     testTimeout: 10000,
     hookTimeout: 10000,
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        singleThread: true, // jsdom + shared window.VSC globals isn't thread-safe
+      },
+    },
+    reporters: ['default'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      exclude: ['node_modules/', 'dist/', 'tests/', 'scripts/', '*.config.*'],
+    },
   },
 });

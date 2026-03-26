@@ -11,11 +11,6 @@ import {
   cleanupChromeMock,
   resetMockStorage,
 } from '../../helpers/chrome-mock.js';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { loadMinimalModules } from '../../helpers/module-loader.js';
-
-await loadMinimalModules();
-
 describe('OptionsRecording', () => {
   beforeEach(() => {
     installChromeMock();

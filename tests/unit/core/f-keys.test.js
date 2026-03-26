@@ -8,11 +8,8 @@ import {
   cleanupChromeMock,
   resetMockStorage,
 } from '../../helpers/chrome-mock.js';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { loadCoreModules } from '../../helpers/module-loader.js';
 
 // Load all core modules (ActionHandler depends on state-manager, site-handlers, etc.)
-await loadCoreModules();
 
 describe('FKeys', () => {
   beforeEach(() => {

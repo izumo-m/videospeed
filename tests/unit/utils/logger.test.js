@@ -3,13 +3,6 @@
  * Verifies messages are buffered until setVerbosity() configures the logger
  */
 
-import { describe, it, expect, afterEach } from 'vitest';
-import { loadMinimalModules } from '../../helpers/module-loader.js';
-
-await loadMinimalModules();
-
-const LOG_LEVELS = window.VSC.Constants.LOG_LEVELS;
-
 /**
  * Create a fresh Logger instance for testing by resetting the singleton's state
  */
@@ -41,6 +34,9 @@ function captureConsole() {
 }
 
 describe('Logger', () => {
+  // Lazy — window.VSC is populated by vitest-setup.js beforeAll
+  const LOG_LEVELS = () => window.VSC.Constants.LOG_LEVELS;
+
   let capture;
 
   afterEach(() => {
@@ -52,8 +48,8 @@ describe('Logger', () => {
 
   it('logger buffers messages before setVerbosity is called', () => {
     const logger = createLogger();
-    logger.log('early message', LOG_LEVELS.INFO);
-    logger.log('another early', LOG_LEVELS.ERROR);
+    logger.log('early message', LOG_LEVELS().INFO);
+    logger.log('another early', LOG_LEVELS().ERROR);
 
     expect(logger._buffer.length).toBe(2);
     expect(logger._ready).toBe(false);
@@ -64,13 +60,13 @@ describe('Logger', () => {
     capture = captureConsole();
 
     // Buffer: one INFO (level 4) and one ERROR (level 2)
-    logger.log('info msg', LOG_LEVELS.INFO);
-    logger.log('error msg', LOG_LEVELS.ERROR);
+    logger.log('info msg', LOG_LEVELS().INFO);
+    logger.log('error msg', LOG_LEVELS().ERROR);
 
     expect(capture.calls.length).toBe(0);
 
     // Set verbosity to WARNING (3) — should emit ERROR but not INFO
-    logger.setVerbosity(LOG_LEVELS.WARNING);
+    logger.setVerbosity(LOG_LEVELS().WARNING);
 
     expect(logger._ready).toBe(true);
     expect(logger._buffer.length).toBe(0);
@@ -82,11 +78,11 @@ describe('Logger', () => {
     const logger = createLogger();
     capture = captureConsole();
 
-    logger.log('debug msg', LOG_LEVELS.DEBUG);
-    logger.log('info msg', LOG_LEVELS.INFO);
-    logger.log('error msg', LOG_LEVELS.ERROR);
+    logger.log('debug msg', LOG_LEVELS().DEBUG);
+    logger.log('info msg', LOG_LEVELS().INFO);
+    logger.log('error msg', LOG_LEVELS().ERROR);
 
-    logger.setVerbosity(LOG_LEVELS.DEBUG);
+    logger.setVerbosity(LOG_LEVELS().DEBUG);
 
     expect(capture.calls.length).toBe(3);
   });
@@ -95,9 +91,9 @@ describe('Logger', () => {
     const logger = createLogger();
     capture = captureConsole();
 
-    logger.setVerbosity(LOG_LEVELS.INFO);
+    logger.setVerbosity(LOG_LEVELS().INFO);
 
-    logger.log('direct message', LOG_LEVELS.INFO);
+    logger.log('direct message', LOG_LEVELS().INFO);
     expect(capture.calls.length).toBe(1);
     expect(logger._buffer.length).toBe(0);
   });
@@ -106,11 +102,11 @@ describe('Logger', () => {
     const logger = createLogger();
     capture = captureConsole();
 
-    logger.log('buffered', LOG_LEVELS.ERROR);
-    logger.setVerbosity(LOG_LEVELS.WARNING); // first call — flushes
+    logger.log('buffered', LOG_LEVELS().ERROR);
+    logger.setVerbosity(LOG_LEVELS().WARNING); // first call — flushes
 
     const countAfterFirst = capture.calls.length;
-    logger.setVerbosity(LOG_LEVELS.DEBUG); // second call — should NOT re-flush
+    logger.setVerbosity(LOG_LEVELS().DEBUG); // second call — should NOT re-flush
 
     expect(capture.calls.length).toBe(countAfterFirst);
   });
@@ -124,9 +120,9 @@ describe('Logger', () => {
     logger.debug('d');
 
     expect(logger._buffer.length).toBe(4);
-    expect(logger._buffer[0].level).toBe(LOG_LEVELS.ERROR);
-    expect(logger._buffer[1].level).toBe(LOG_LEVELS.WARNING);
-    expect(logger._buffer[2].level).toBe(LOG_LEVELS.INFO);
-    expect(logger._buffer[3].level).toBe(LOG_LEVELS.DEBUG);
+    expect(logger._buffer[0].level).toBe(LOG_LEVELS().ERROR);
+    expect(logger._buffer[1].level).toBe(LOG_LEVELS().WARNING);
+    expect(logger._buffer[2].level).toBe(LOG_LEVELS().INFO);
+    expect(logger._buffer[3].level).toBe(LOG_LEVELS().DEBUG);
   });
 });

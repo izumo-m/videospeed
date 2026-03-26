@@ -14,11 +14,7 @@ import {
   getMockStorage,
   simulateExternalStorageWrite,
 } from '../../helpers/chrome-mock.js';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { loadMinimalModules } from '../../helpers/module-loader.js';
-
-await loadMinimalModules();
-
+import { vi } from 'vitest';
 describe('SettingsRaceCondition', () => {
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });

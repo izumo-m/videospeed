@@ -3,17 +3,12 @@
  * Tests the findShadowMedia functionality in dom-utils.js and MediaElementObserver
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   installChromeMock,
   cleanupChromeMock,
   resetMockStorage,
 } from '../../helpers/chrome-mock.js';
 import { createMockVideo, createMockDOM } from '../../helpers/test-utils.js';
-import { loadCoreModules } from '../../helpers/module-loader.js';
-
-await loadCoreModules();
-
 let mockDOM;
 
 function createNestedShadowDOM(depth, includeVideo = true) {

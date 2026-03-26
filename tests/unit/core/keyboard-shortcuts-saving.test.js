@@ -8,16 +8,8 @@ import {
   cleanupChromeMock,
   resetMockStorage,
 } from '../../helpers/chrome-mock.js';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { loadMinimalModules } from '../../helpers/module-loader.js';
 
 // Load all required modules
-await loadMinimalModules([
-  '../../../src/utils/constants.js',
-  '../../../src/utils/logger.js',
-  '../../../src/core/storage-manager.js',
-  '../../../src/core/settings.js',
-]);
 
 describe('KeyboardShortcutsSaving', () => {
   beforeEach(() => {

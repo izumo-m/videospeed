@@ -10,11 +10,6 @@ import {
   resetMockStorage,
   getMockStorage,
 } from '../../helpers/chrome-mock.js';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { loadMinimalModules } from '../../helpers/module-loader.js';
-
-await loadMinimalModules();
-
 // Helper: ensure chrome mock is active and storage is clean
 function setupMock() {
   installChromeMock();

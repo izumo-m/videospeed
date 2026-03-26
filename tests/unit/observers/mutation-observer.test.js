@@ -1,10 +1,7 @@
 // Import necessary modules
 import { installChromeMock, cleanupChromeMock } from '../../helpers/chrome-mock.js';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { loadCoreModules } from '../../helpers/module-loader.js';
 
 // Load all required modules
-await loadCoreModules();
 
 describe('MutationObserver', () => {
   beforeEach(() => {

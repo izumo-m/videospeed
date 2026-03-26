@@ -5,10 +5,8 @@
 
 import { installChromeMock, cleanupChromeMock, resetMockStorage } from '../helpers/chrome-mock.js';
 import { createMockVideo, createMockDOM } from '../helpers/test-utils.js';
-import { loadCoreModules } from '../helpers/module-loader.js';
 
 // Load all required modules
-await loadCoreModules();
 
 let mockDOM;
 

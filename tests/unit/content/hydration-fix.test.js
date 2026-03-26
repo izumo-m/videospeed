@@ -8,12 +8,9 @@ import {
   cleanupChromeMock,
   resetMockStorage,
 } from '../../helpers/chrome-mock.js';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createMockDOM } from '../../helpers/test-utils.js';
-import { loadInjectModules } from '../../helpers/module-loader.js';
 
 // Load all required modules
-await loadInjectModules();
 
 let mockDOM;
 

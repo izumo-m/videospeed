@@ -5,10 +5,6 @@
 
 import { installChromeMock, cleanupChromeMock, resetMockStorage } from '../helpers/chrome-mock.js';
 import { createMockVideo } from '../helpers/test-utils.js';
-import { loadCoreModules } from '../helpers/module-loader.js';
-
-await loadCoreModules();
-
 describe('StateManagerIntegration', () => {
   beforeEach(() => {
     installChromeMock();

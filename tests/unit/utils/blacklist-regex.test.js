@@ -3,36 +3,31 @@
  * Tests regex patterns with and without flags
  */
 
-import { describe, it, expect } from 'vitest';
 import { isBlacklisted } from '../../../src/utils/blacklist.js';
 
 describe('Blacklist Regex', () => {
-  it('should parse regex patterns WITHOUT flags', () => {
+  describe('should parse regex patterns WITHOUT flags', () => {
     const blacklist = '/(.+)youtube\\.com(\\/*)$/';
 
-    const testCases = [
-      { url: 'https://www.youtube.com/', shouldMatch: true },
-      { url: 'https://music.youtube.com/', shouldMatch: true },
-      { url: 'https://m.youtube.com/', shouldMatch: true },
-      { url: 'https://example.com/', shouldMatch: false },
-    ];
-
-    testCases.forEach(({ url, shouldMatch }) => {
+    it.each([
+      ['https://www.youtube.com/', true],
+      ['https://music.youtube.com/', true],
+      ['https://m.youtube.com/', true],
+      ['https://example.com/', false],
+    ])('%s → %s', (url, shouldMatch) => {
       expect(isBlacklisted(blacklist, url)).toBe(shouldMatch);
     });
   });
 
-  it('should parse regex patterns WITH flags', () => {
+  describe('should parse regex patterns WITH flags', () => {
     const blacklist = '/(.+)youtube\\.com(\\/*)$/gi';
 
-    const testCases = [
-      { url: 'https://www.youtube.com/', shouldMatch: true },
-      { url: 'https://YOUTUBE.COM/', shouldMatch: true },
-      { url: 'https://music.youtube.com/', shouldMatch: true },
-      { url: 'https://example.com/', shouldMatch: false },
-    ];
-
-    testCases.forEach(({ url, shouldMatch }) => {
+    it.each([
+      ['https://www.youtube.com/', true],
+      ['https://YOUTUBE.COM/', true],
+      ['https://music.youtube.com/', true],
+      ['https://example.com/', false],
+    ])('%s → %s', (url, shouldMatch) => {
       expect(isBlacklisted(blacklist, url)).toBe(shouldMatch);
     });
   });
@@ -42,20 +37,18 @@ describe('Blacklist Regex', () => {
     expect(isBlacklisted(blacklist, 'https://www.youtube.com/watch?v=123')).toBe(true);
   });
 
-  it('should handle multiple blacklist entries with mixed formats', () => {
+  describe('should handle multiple blacklist entries with mixed formats', () => {
     const blacklist = `youtube.com
 /(.+)instagram\\.com/
 /twitter\\.com/gi`;
 
-    const testCases = [
-      { url: 'https://www.youtube.com/', shouldMatch: true },
-      { url: 'https://www.instagram.com/', shouldMatch: true },
-      { url: 'https://twitter.com/', shouldMatch: true },
-      { url: 'https://TWITTER.COM/', shouldMatch: true },
-      { url: 'https://example.com/', shouldMatch: false },
-    ];
-
-    testCases.forEach(({ url, shouldMatch }) => {
+    it.each([
+      ['https://www.youtube.com/', true],
+      ['https://www.instagram.com/', true],
+      ['https://twitter.com/', true],
+      ['https://TWITTER.COM/', true],
+      ['https://example.com/', false],
+    ])('%s → %s', (url, shouldMatch) => {
       expect(isBlacklisted(blacklist, url)).toBe(shouldMatch);
     });
   });
@@ -78,47 +71,43 @@ youtube.com
     expect(isBlacklisted(blacklist, 'https://www.youtube.com/')).toBe(true);
   });
 
-  it('should not match partial domain names (x.com should not match netflix.com)', () => {
+  describe('should not match partial domain names (x.com should not match netflix.com)', () => {
     const blacklist = 'x.com';
 
-    const testCases = [
-      { url: 'https://x.com/', shouldMatch: true },
-      { url: 'https://www.x.com/', shouldMatch: true },
-      { url: 'https://x.com/status/123', shouldMatch: true },
-      { url: 'https://netflix.com/', shouldMatch: false },
-      { url: 'https://max.com/', shouldMatch: false },
-      { url: 'https://fox.com/', shouldMatch: false },
-    ];
-
-    testCases.forEach(({ url, shouldMatch }) => {
+    it.each([
+      ['https://x.com/', true],
+      ['https://www.x.com/', true],
+      ['https://x.com/status/123', true],
+      ['https://netflix.com/', false],
+      ['https://max.com/', false],
+      ['https://fox.com/', false],
+    ])('%s → %s', (url, shouldMatch) => {
       expect(isBlacklisted(blacklist, url)).toBe(shouldMatch);
     });
   });
 
-  it('should handle real user blacklist correctly (netflix.com should NOT be blocked)', () => {
+  describe('should handle real user blacklist correctly (netflix.com should NOT be blocked)', () => {
     const blacklist = `www.instagram.com
 x.com
 imgur.com
 teams.microsoft.com
 meet.google.com`;
 
-    const testCases = [
-      { url: 'https://www.instagram.com/', shouldMatch: true },
-      { url: 'https://instagram.com/', shouldMatch: false },
-      { url: 'https://x.com/', shouldMatch: true },
-      { url: 'https://www.x.com/', shouldMatch: true },
-      { url: 'https://imgur.com/', shouldMatch: true },
-      { url: 'https://teams.microsoft.com/', shouldMatch: true },
-      { url: 'https://meet.google.com/', shouldMatch: true },
-      { url: 'https://netflix.com/', shouldMatch: false },
-      { url: 'https://www.netflix.com/', shouldMatch: false },
-      { url: 'https://max.com/', shouldMatch: false },
-      { url: 'https://fox.com/', shouldMatch: false },
-      { url: 'https://google.com/', shouldMatch: false },
-      { url: 'https://microsoft.com/', shouldMatch: false },
-    ];
-
-    testCases.forEach(({ url, shouldMatch }) => {
+    it.each([
+      ['https://www.instagram.com/', true],
+      ['https://instagram.com/', false],
+      ['https://x.com/', true],
+      ['https://www.x.com/', true],
+      ['https://imgur.com/', true],
+      ['https://teams.microsoft.com/', true],
+      ['https://meet.google.com/', true],
+      ['https://netflix.com/', false],
+      ['https://www.netflix.com/', false],
+      ['https://max.com/', false],
+      ['https://fox.com/', false],
+      ['https://google.com/', false],
+      ['https://microsoft.com/', false],
+    ])('%s → %s', (url, shouldMatch) => {
       expect(isBlacklisted(blacklist, url)).toBe(shouldMatch);
     });
   });

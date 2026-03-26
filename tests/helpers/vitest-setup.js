@@ -1,13 +1,13 @@
 /**
- * Vitest setup file — replicates the global environment that run-tests.js
- * sets up manually (chrome mock, shadow DOM polyfill, missing browser APIs).
+ * Vitest setup file — global test environment for all test files.
  *
- * Vitest's jsdom environment provides window, document, HTMLElement, etc.
- * automatically — we only need to add what jsdom doesn't have.
+ * Provides: chrome mock, shadow DOM polyfill, requestIdleCallback stub,
+ * and pre-loads all extension modules once for the entire test run.
  */
 
-import { beforeEach } from 'vitest';
+import { beforeAll, beforeEach } from 'vitest';
 import { installChromeMock, resetMockStorage } from './chrome-mock.js';
+import { loadInjectModules } from './module-loader.js';
 
 // Install Chrome extension API mock
 installChromeMock();
@@ -19,7 +19,6 @@ if (typeof globalThis.requestIdleCallback === 'undefined') {
 
 // Enhanced shadow DOM support for jsdom
 // jsdom doesn't support attachShadow — we mock it with a div-based approach
-// Ported from run-tests.js lines 82-119
 if (!HTMLElement.prototype._originalAttachShadow) {
   const orig = HTMLElement.prototype.attachShadow;
   const needsPolyfill = (() => {
@@ -38,18 +37,13 @@ if (!HTMLElement.prototype._originalAttachShadow) {
       shadowRoot.mode = options.mode || 'open';
       shadowRoot.host = this;
 
-      // Override innerHTML to handle template parsing
       let shadowHTML = '';
       Object.defineProperty(shadowRoot, 'innerHTML', {
         get: () => shadowHTML,
         set: (value) => {
           shadowHTML = value;
-
-          // Parse the shadow DOM template and create actual elements
           const tempDiv = document.createElement('div');
-          tempDiv.innerHTML = value.replace(/@import[^;]+;/g, ''); // Remove CSS imports
-
-          // Move children from temp div to shadow root
+          tempDiv.innerHTML = value.replace(/@import[^;]+;/g, '');
           while (tempDiv.firstChild) {
             shadowRoot.appendChild(tempDiv.firstChild);
           }
@@ -61,6 +55,13 @@ if (!HTMLElement.prototype._originalAttachShadow) {
     };
   }
 }
+
+// Load ALL extension modules once for the entire test run.
+// This includes loadCoreModules + inject.js — the superset.
+// Individual test files no longer need to call loadCoreModules/loadInjectModules.
+beforeAll(async () => {
+  await loadInjectModules();
+});
 
 // Reset mock storage between tests for isolation
 beforeEach(() => {
