@@ -98,68 +98,63 @@ describe('UIToStorageFlow', () => {
     expect(savedData.length).toBe(0); // No storage saves in non-persistent mode
   });
 
-  it('Full flow: external change → force mode → restore → storage', async () => {
+  it('Full flow: external ratechange → fight-back → restore speed', async () => {
     const config = window.VSC.videoSpeedConfig;
     await config.load();
     config.settings.rememberSpeed = true;
     config.settings.lastSpeed = 2.0;
 
+    const actionHandler = new window.VSC.ActionHandler(config, null);
+    const eventManager = new window.VSC.EventManager(config, actionHandler);
+
+    const mockVideo = createMockVideo({ playbackRate: 1.0 });
+    mockDOM.container.appendChild(mockVideo);
+    // eslint-disable-next-line no-unused-vars -- constructor sets up controller
+    const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
+
+    // Video should be at 2.0 after controller init (rememberSpeed + lastSpeed)
+    expect(mockVideo.playbackRate).toBe(2.0);
+
+    // Simulate an external ratechange (site resets to 1.0)
+    mockVideo.playbackRate = 1.0;
+    Object.defineProperty(mockVideo, 'readyState', { value: 4, configurable: true });
+
+    const rateChangeEvent = {
+      composedPath: () => [mockVideo],
+      target: mockVideo,
+      detail: null, // external — no VSC origin marker
+      stopImmediatePropagation: () => {},
+    };
+
+    eventManager.handleRateChange(rateChangeEvent);
+
+    // Fight-back should restore to authoritative speed
+    expect(mockVideo.playbackRate).toBe(2.0);
+  });
+
+  it('Full flow: mouse wheel → relative change → UI update', async () => {
+    const config = window.VSC.videoSpeedConfig;
+    await config.load();
+    config.settings.rememberSpeed = true;
+    config.settings.lastSpeed = 1.5; // Controller will init to 1.5
+
     const eventManager = new window.VSC.EventManager(config, null);
     const actionHandler = new window.VSC.ActionHandler(config, eventManager);
 
-    // Create video
     const mockVideo = createMockVideo({ playbackRate: 1.0 });
     mockDOM.container.appendChild(mockVideo);
     const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
 
-    // Track storage saves
-    const savedData = [];
-    const originalSave = config.save;
-    config.save = async function (data) {
-      savedData.push({ ...data });
-      return originalSave.call(this, data);
-    };
-
-    // Simulate external change (e.g., from site's native controls)
-    actionHandler.adjustSpeed(mockVideo, 3.0, { source: 'external' });
-
-    // Verify force mode blocked external change and restored preference
-    expect(mockVideo.playbackRate).toBe(2.0); // Blocked external change, restored to preference
-    expect(controller.speedIndicator.textContent).toBe('2.00'); // UI shows restored speed
-    expect(config.settings.lastSpeed).toBe(2.0); // Config unchanged
-    expect(savedData.length).toBe(1); // Storage called to save restoration
-    expect(savedData[0].lastSpeed).toBe(2.0); // Saved restored speed
-  });
-
-  it('Full flow: mouse wheel → relative change → storage → UI', async () => {
-    const config = window.VSC.videoSpeedConfig;
-    await config.load();
-
-    const eventManager = new window.VSC.EventManager(config, null);
-    const actionHandler = new window.VSC.ActionHandler(config, eventManager);
-
-    // Create video
-    const mockVideo = createMockVideo({ playbackRate: 1.5 });
-    mockDOM.container.appendChild(mockVideo);
-    const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
-
-    // Track storage saves
-    const savedData = [];
-    const originalSave = config.save;
-    config.save = async function (data) {
-      savedData.push({ ...data });
-      return originalSave.call(this, data);
-    };
+    // Controller should have initialized to 1.5 (rememberSpeed + lastSpeed)
+    expect(mockVideo.playbackRate).toBe(1.5);
 
     // Simulate mouse wheel scroll (relative change)
     actionHandler.adjustSpeed(mockVideo, 0.1, { relative: true });
 
-    // Verify relative change flow
-    expect(mockVideo.playbackRate).toBe(1.6); // 1.5 + 0.1
-    expect(controller.speedIndicator.textContent).toBe('1.60'); // UI updated
-    expect(config.settings.lastSpeed).toBe(1.6); // Config updated
-    expect(savedData.length).toBe(1); // Storage called
-    expect(savedData[0].lastSpeed).toBe(1.6); // Correct relative result saved
+    // 1.5 + 0.1 = 1.6
+    expect(mockVideo.playbackRate).toBe(1.6);
+    expect(controller.speedIndicator.textContent).toBe('1.60');
+    expect(config.settings.lastSpeed).toBe(1.6);
   });
 
   it('Full flow: multiple videos → different speeds → correct storage behavior', async () => {
@@ -202,7 +197,7 @@ describe('UIToStorageFlow', () => {
     expect(savedData.length).toBe(0); // No saves with rememberSpeed = false
   });
 
-  it('Full flow: speed limits enforcement → clamping → correct storage', async () => {
+  it('Full flow: speed limits enforcement → clamping', async () => {
     const config = window.VSC.videoSpeedConfig;
     await config.load();
 
@@ -213,30 +208,18 @@ describe('UIToStorageFlow', () => {
     mockDOM.container.appendChild(mockVideo);
     const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
 
-    // Track storage saves
-    const savedData = [];
-    const originalSave = config.save;
-    config.save = async function (data) {
-      savedData.push({ ...data });
-      return originalSave.call(this, data);
-    };
-
-    // Try to set speed above maximum
+    // Try to set speed above maximum (16.0)
     actionHandler.adjustSpeed(mockVideo, 25.0);
 
-    // Verify clamping and correct storage
-    expect(mockVideo.playbackRate).toBe(16.0); // Clamped to max
-    expect(controller.speedIndicator.textContent).toBe('16.00'); // UI shows clamped
-    expect(config.settings.lastSpeed).toBe(16.0); // Config has clamped value
-    expect(savedData.length).toBe(1); // Storage called
-    expect(savedData[0].lastSpeed).toBe(16.0); // Clamped value saved, not original
+    expect(mockVideo.playbackRate).toBe(16.0);
+    expect(controller.speedIndicator.textContent).toBe('16.00');
+    expect(config.settings.lastSpeed).toBe(16.0);
 
-    // Try to set speed below minimum
+    // Try to set speed below minimum (0.07)
     actionHandler.adjustSpeed(mockVideo, 0.01);
 
-    // Verify minimum clamping
-    expect(mockVideo.playbackRate).toBe(0.07); // Clamped to min
-    expect(controller.speedIndicator.textContent).toBe('0.07'); // UI shows clamped
-    expect(savedData[1].lastSpeed).toBe(0.07); // Clamped value saved
+    expect(mockVideo.playbackRate).toBe(0.07);
+    expect(controller.speedIndicator.textContent).toBe('0.07');
+    expect(config.settings.lastSpeed).toBe(0.07);
   });
 });

@@ -14,19 +14,20 @@ import {
   getMockStorage,
   simulateExternalStorageWrite,
 } from '../../helpers/chrome-mock.js';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { wait } from '../../helpers/test-utils.js';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadMinimalModules } from '../../helpers/module-loader.js';
 
 await loadMinimalModules();
 
 describe('SettingsRaceCondition', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     installChromeMock();
     resetMockStorage();
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     cleanupChromeMock();
   });
 
@@ -86,7 +87,7 @@ describe('SettingsRaceCondition', () => {
     await config.load();
 
     // Wait generously for any pending async from load() and prior tests
-    await wait(1200);
+    await vi.advanceTimersByTimeAsync(1200);
 
     // Set up spy AFTER all prior async is drained
     const writtenPayloads = [];
@@ -103,7 +104,7 @@ describe('SettingsRaceCondition', () => {
     expect(writtenPayloads.length).toBe(0);
 
     // Wait for debounce to fire
-    await wait(1200);
+    await vi.advanceTimersByTimeAsync(1200);
 
     expect(writtenPayloads.length).toBe(1);
     const written = writtenPayloads[0];
@@ -136,7 +137,7 @@ describe('SettingsRaceCondition', () => {
     await config.save({ startHidden: true });
 
     // Wait for any async storage operations
-    await wait(50);
+    await vi.advanceTimersByTimeAsync(50);
 
     // CRITICAL: storage.lastSpeed should STILL be 2.0
     // Old code would write {...this.settings} which has stale lastSpeed=1.0
@@ -156,7 +157,7 @@ describe('SettingsRaceCondition', () => {
     storage.startHidden = true;
 
     // T=1: debounce fires — should write ONLY {lastSpeed: 1.5}, NOT {startHidden: false}
-    await wait(1100);
+    await vi.advanceTimersByTimeAsync(1100);
 
     expect(storage.startHidden).toBe(true);
     expect(storage.lastSpeed).toBe(1.5);
@@ -178,7 +179,7 @@ describe('SettingsRaceCondition', () => {
     // Config B saves startHidden
     await configB.save({ startHidden: true });
 
-    await wait(50);
+    await vi.advanceTimersByTimeAsync(50);
 
     // BOTH should be preserved
     expect(storage.controllerOpacity).toBe(0.9);
@@ -196,7 +197,7 @@ describe('SettingsRaceCondition', () => {
     await config.save({ controllerOpacity: 0.7 });
     await config.save({ audioBoolean: true });
 
-    await wait(50);
+    await vi.advanceTimersByTimeAsync(50);
 
     expect(storage.startHidden).toBe(true);
     expect(storage.controllerOpacity).toBe(0.7);
@@ -232,7 +233,7 @@ describe('SettingsRaceCondition', () => {
     };
 
     await optionsConfig.save(settingsFromForm);
-    await wait(50);
+    await vi.advanceTimersByTimeAsync(50);
 
     // CRITICAL: storage should NOT have reverted lastSpeed from 4.0 to 3.0
     expect(storage.lastSpeed).toBe(4.0);
@@ -333,7 +334,7 @@ describe('SettingsRaceCondition', () => {
     expect(config.settings.lastSpeed).toBe(1.4);
 
     // Wait for debounce
-    await wait(1100);
+    await vi.advanceTimersByTimeAsync(1100);
 
     // Should write once with final value, and ONLY lastSpeed
     expect(writtenPayloads.length).toBe(1);
@@ -353,14 +354,14 @@ describe('SettingsRaceCondition', () => {
     // Non-speed save (immediate) — should NOT carry stale lastSpeed
     await config.save({ startHidden: true });
 
-    await wait(50);
+    await vi.advanceTimersByTimeAsync(50);
 
     // startHidden should be in storage immediately
     expect(storage.startHidden).toBe(true);
 
     // Speed not yet written (still debouncing)
     // But once debounce fires...
-    await wait(1100);
+    await vi.advanceTimersByTimeAsync(1100);
 
     expect(storage.lastSpeed).toBe(2.0);
     expect(storage.startHidden).toBe(true); // should still be true
@@ -381,15 +382,15 @@ describe('SettingsRaceCondition', () => {
     await config.save({ lastSpeed: 1.5 });
 
     // Wait 500ms then another save (resets timer)
-    await wait(500);
+    await vi.advanceTimersByTimeAsync(500);
     await config.save({ lastSpeed: 2.0 });
 
     // Wait 500ms more — first timer would have fired but was reset
-    await wait(500);
+    await vi.advanceTimersByTimeAsync(500);
     expect(writtenPayloads.length).toBe(0);
 
     // Wait remaining time
-    await wait(600);
+    await vi.advanceTimersByTimeAsync(600);
     expect(writtenPayloads.length).toBe(1);
     expect(writtenPayloads[0]).toEqual({ lastSpeed: 2.0 });
 
@@ -462,7 +463,7 @@ describe('SettingsRaceCondition', () => {
     await config.load();
 
     // Wait for async storage operations to complete
-    await wait(50);
+    await vi.advanceTimersByTimeAsync(50);
 
     // The load() path calls save({keyBindings: ...}) — should write only keyBindings
     expect(writtenPayloads.length >= 1).toBe(true);
@@ -487,7 +488,7 @@ describe('SettingsRaceCondition', () => {
     await config.save({ lastSpeed: 2.5 });
 
     // Wait for debounce to fire and write
-    await wait(1200);
+    await vi.advanceTimersByTimeAsync(1200);
 
     // User immediately changes speed again (new debounce cycle)
     await config.save({ lastSpeed: 2.8 });
@@ -495,7 +496,7 @@ describe('SettingsRaceCondition', () => {
 
     // The onChanged echo from the 2.5 write fires via mock's setTimeout(5ms).
     // Give it time to arrive.
-    await wait(50);
+    await vi.advanceTimersByTimeAsync(50);
 
     // CRITICAL: in-memory must still be 2.8, NOT reverted to 2.5
     expect(config.settings.lastSpeed).toBe(2.8);
@@ -511,19 +512,19 @@ describe('SettingsRaceCondition', () => {
 
     // Debounce fires and writes 2.0
     await config.save({ lastSpeed: 2.0 });
-    await wait(1200);
+    await vi.advanceTimersByTimeAsync(1200);
 
     // Start new debounce for 3.0
     await config.save({ lastSpeed: 3.0 });
 
     // Let the echo from the 2.0 write arrive
-    await wait(50);
+    await vi.advanceTimersByTimeAsync(50);
 
     // Timer for 3.0 should still be alive
     expect(config.saveTimer).toBeDefined();
 
     // Let the 3.0 debounce fire
-    await wait(1200);
+    await vi.advanceTimersByTimeAsync(1200);
 
     expect(storage.lastSpeed).toBe(3.0);
   });
@@ -548,7 +549,7 @@ describe('SettingsRaceCondition', () => {
     expect(config.settings.lastSpeed).toBe(3.0);
 
     // Wait past the original debounce window — nothing should fire
-    await wait(1200);
+    await vi.advanceTimersByTimeAsync(1200);
 
     // Storage should still be 3.0 (our stale 2.0 was never written)
     expect(storage.lastSpeed).toBe(3.0);
@@ -573,7 +574,7 @@ describe('SettingsRaceCondition', () => {
     expect(config.settings.startHidden).toBe(true);
 
     // Let debounce fire
-    await wait(1200);
+    await vi.advanceTimersByTimeAsync(1200);
     expect(storage.lastSpeed).toBe(2.0);
   });
 
@@ -583,7 +584,7 @@ describe('SettingsRaceCondition', () => {
 
     // Full debounce cycle: write + echo consumed (mock fires onChanged after 5ms)
     await config.save({ lastSpeed: 2.0 });
-    await wait(1300);
+    await vi.advanceTimersByTimeAsync(1300);
 
     // After the echo is consumed, _lastWrittenSpeed should be cleared
     expect(config._lastWrittenSpeed).toBe(null);
@@ -606,7 +607,7 @@ describe('SettingsRaceCondition', () => {
     await config.save({ controllerOpacity: 0.5 });
     await config.save({ controllerOpacity: 0.9 });
 
-    await wait(50);
+    await vi.advanceTimersByTimeAsync(50);
 
     expect(storage.controllerOpacity).toBe(0.9);
     expect(config.settings.controllerOpacity).toBe(0.9);
@@ -647,7 +648,7 @@ describe('SettingsRaceCondition', () => {
     expect(config._loaded).toBe(true);
 
     await config.save({ startHidden: true });
-    await wait(50);
+    await vi.advanceTimersByTimeAsync(50);
 
     expect(storage.startHidden).toBe(true);
   });
@@ -665,7 +666,7 @@ describe('SettingsRaceCondition', () => {
 
     const config = new window.VSC.VideoSpeedConfig();
     await config.load();
-    await wait(50);
+    await vi.advanceTimersByTimeAsync(50);
 
     // The keyBindings init save inside load() should have gone through
     const keyBindingsWrite = writtenPayloads.find((keys) => keys.includes('keyBindings'));
@@ -762,7 +763,7 @@ describe('SettingsRaceCondition', () => {
     };
 
     // Wait for debounce to fire (and fail)
-    await wait(1200);
+    await vi.advanceTimersByTimeAsync(1200);
 
     // _lastWrittenSpeed should be cleaned up, not left stale
     expect(config._lastWrittenSpeed).toBe(null);

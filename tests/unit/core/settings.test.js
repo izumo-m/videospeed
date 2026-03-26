@@ -8,8 +8,7 @@ import {
   cleanupChromeMock,
   resetMockStorage,
 } from '../../helpers/chrome-mock.js';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { wait } from '../../helpers/test-utils.js';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadCoreModules } from '../../helpers/module-loader.js';
 
 // Load all required modules
@@ -17,6 +16,7 @@ await loadCoreModules();
 
 describe('Settings', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     installChromeMock();
     resetMockStorage();
 
@@ -27,6 +27,7 @@ describe('Settings', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     cleanupChromeMock();
   });
 
@@ -112,7 +113,7 @@ describe('Settings', () => {
     expect(config.settings.lastSpeed).toBe(2.0); // In-memory should update immediately
 
     // Wait for debounce delay
-    await wait(1100);
+    await vi.advanceTimersByTimeAsync(1100);
 
     // Should have saved only once
     expect(saveCount).toBe(1);
@@ -154,15 +155,15 @@ describe('Settings', () => {
     await config.save({ lastSpeed: 1.5 });
 
     // Wait 500ms, then another update (should reset timer)
-    await wait(500);
+    await vi.advanceTimersByTimeAsync(500);
     await config.save({ lastSpeed: 2.0 });
 
     // Wait another 500ms (total 1000ms from first, but only 500ms from second)
-    await wait(500);
+    await vi.advanceTimersByTimeAsync(500);
     expect(saveCount).toBe(0); // Should not have saved yet
 
     // Wait remaining 600ms (total 1100ms from second update)
-    await wait(600);
+    await vi.advanceTimersByTimeAsync(600);
     expect(saveCount).toBe(1); // Should have saved now
     expect(config.settings.lastSpeed).toBe(2.0); // Final value
 
@@ -186,7 +187,7 @@ describe('Settings', () => {
     await config.save({ lastSpeed: 2.3 });
 
     // Wait for debounce
-    await wait(1100);
+    await vi.advanceTimersByTimeAsync(1100);
 
     // Should have saved only the final value
     expect(savedValue).toBe(2.3);
@@ -213,7 +214,7 @@ describe('Settings', () => {
     expect(saveCount).toBe(0); // Storage not saved yet
 
     // Wait for debounce
-    await wait(1100);
+    await vi.advanceTimersByTimeAsync(1100);
     expect(saveCount).toBe(1); // Now saved to storage
 
     window.VSC.StorageManager.set = originalSet;
