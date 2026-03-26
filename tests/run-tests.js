@@ -5,10 +5,9 @@
  * Usage: node tests/run-tests.js [unit|integration]
  */
 
-import { pathToFileURL } from 'url';
-import { readFileSync, existsSync } from 'fs';
+import { pathToFileURL, fileURLToPath } from 'url';
+import { existsSync } from 'fs';
 import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -28,7 +27,7 @@ try {
 const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
   url: 'http://localhost',
   pretendToBeVisual: true,
-  resources: 'usable'
+  resources: 'usable',
 });
 
 // Mock Chrome APIs first (before setting up DOM globals)
@@ -45,18 +44,18 @@ global.chrome = {
           startHidden: false,
           controllerOpacity: 0.3,
           controllerButtonSize: 14,
-          blacklist: "www.instagram.com\nx.com",
-          logLevel: 1
+          blacklist: 'www.instagram.com\nx.com',
+          logLevel: 1,
         };
         setTimeout(() => callback(mockData), 10);
       },
-      set: (items, callback) => setTimeout(() => callback && callback(), 10)
-    }
+      set: (items, callback) => setTimeout(() => callback && callback(), 10),
+    },
   },
   runtime: {
     getURL: (path) => `chrome-extension://test/${path}`,
-    id: 'test-extension-id'
-  }
+    id: 'test-extension-id',
+  },
 };
 
 // Set up global DOM objects for Node.js environment
@@ -75,7 +74,7 @@ Object.assign(global, {
   customElements: dom.window.customElements,
   getComputedStyle: dom.window.getComputedStyle,
   requestIdleCallback: (fn) => setTimeout(fn, 0),
-  location: { hostname: 'localhost', href: 'http://localhost' }
+  location: { hostname: 'localhost', href: 'http://localhost' },
 });
 
 // Enhanced shadow DOM support for JSDOM
@@ -110,7 +109,7 @@ if (!global.HTMLElement.prototype.attachShadow) {
         while (tempDiv.firstChild) {
           shadowRoot.appendChild(tempDiv.firstChild);
         }
-      }
+      },
     });
 
     this.shadowRoot = shadowRoot;
@@ -144,23 +143,18 @@ async function runTests() {
       'unit/content/inject.test.js',
       'unit/content/hydration-fix.test.js',
       'unit/content/content-entry.test.js',
-      'unit/utils/recursive-shadow-dom.test.js',
-      'unit/utils/blacklist-regex.test.js',
-      'unit/utils/site-pattern.test.js',
-      'unit/core/speed-resolution.test.js',
-      'unit/utils/event-manager.test.js',
-      'unit/utils/event-manager-matching.test.js',
-      'unit/utils/logger.test.js',
+      // Migrated to vitest: logger, blacklist-regex, event-manager,
+      // event-manager-matching, recursive-shadow-dom
       'unit/ui/drag-and-reset.test.js',
       'unit/ui/options-recording.test.js',
-      'unit/content/injection-bridge.test.js'
+      'unit/content/injection-bridge.test.js',
     ];
   } else if (testType === 'integration') {
     testFiles = [
       'integration/module-integration.test.js',
       'integration/ui-to-storage-flow.test.js',
       'integration/state-manager-integration.test.js',
-      'integration/blacklist-blocking.test.js'
+      'integration/blacklist-blocking.test.js',
     ];
   } else {
     // Run all tests
@@ -179,13 +173,8 @@ async function runTests() {
       'unit/content/inject.test.js',
       'unit/content/hydration-fix.test.js',
       'unit/content/content-entry.test.js',
-      'unit/utils/recursive-shadow-dom.test.js',
-      'unit/utils/blacklist-regex.test.js',
-      'unit/utils/site-pattern.test.js',
-      'unit/core/speed-resolution.test.js',
-      'unit/utils/event-manager.test.js',
-      'unit/utils/event-manager-matching.test.js',
-      'unit/utils/logger.test.js',
+      // Migrated to vitest: logger, blacklist-regex, event-manager,
+      // event-manager-matching, recursive-shadow-dom
       'unit/ui/drag-and-reset.test.js',
       'integration/module-integration.test.js',
       'integration/ui-to-storage-flow.test.js',
@@ -193,7 +182,7 @@ async function runTests() {
       'integration/blacklist-blocking.test.js',
       // injection-bridge must run last: its module import permanently registers
       // window message listeners that interfere with subsequent test suites
-      'unit/content/injection-bridge.test.js'
+      'unit/content/injection-bridge.test.js',
     ];
   }
 
@@ -211,7 +200,7 @@ async function runTests() {
       console.log(`📝 Running ${testFile}...`);
 
       const testModule = await import(pathToFileURL(testPath).href);
-      const runner = Object.values(testModule).find(exp => exp && typeof exp.run === 'function');
+      const runner = Object.values(testModule).find((exp) => exp && typeof exp.run === 'function');
 
       if (runner) {
         const results = await runner.run();
@@ -250,7 +239,7 @@ async function runTests() {
   process.exit(totalFailed > 0 ? 1 : 0);
 }
 
-runTests().catch(error => {
+runTests().catch((error) => {
   console.error('💥 Test runner failed:', error);
   process.exit(1);
 });
