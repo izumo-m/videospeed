@@ -97,7 +97,7 @@ class EventManager {
     if (keyBinding) {
       this.actionHandler.runAction(keyBinding.action, keyBinding.value, event);
 
-      if (keyBinding.force) {
+      if (this.config.settings.exclusiveKeys) {
         event.preventDefault();
         event.stopPropagation();
       }

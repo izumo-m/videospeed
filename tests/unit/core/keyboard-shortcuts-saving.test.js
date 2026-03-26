@@ -54,7 +54,6 @@ runner.test('DEFAULT_SETTINGS keyBindings should have proper structure', () => {
     assert.equal(typeof binding.action, 'string', `Binding ${index}: action should be string`);
     assert.equal(typeof binding.key, 'number', `Binding ${index}: key should be number`);
     assert.equal(typeof binding.value, 'number', `Binding ${index}: value should be number`);
-    assert.equal(typeof binding.force, 'boolean', `Binding ${index}: force should be boolean`);
     assert.equal(typeof binding.predefined, 'boolean', `Binding ${index}: predefined should be boolean`);
   });
 });
@@ -97,7 +96,6 @@ runner.test('Should handle existing keyBindings in storage', async () => {
   // Verify bindings were loaded correctly
   const slowerBinding = config2.settings.keyBindings.find(b => b.action === 'slower');
   assert.exists(slowerBinding, 'Should have slower binding');
-  assert.equal(typeof slowerBinding.force, 'boolean', 'Force should be boolean type');
 });
 
 runner.test('Should save keyBindings to storage correctly', async () => {
@@ -142,24 +140,18 @@ runner.test('Should maintain consistency across load/save cycles', async () => {
   assert.exists(slowerBinding, 'Slower binding should exist');
   assert.exists(fasterBinding, 'Faster binding should exist');
   
-  // Values should be preserved with correct types
-  assert.equal(typeof slowerBinding.force, 'boolean', 'Force field should be boolean type');
-  assert.equal(typeof fasterBinding.force, 'boolean', 'Force field should be boolean type');
 });
 
-// Force Field Data Type Consistency tests
-runner.test('Should handle string force values from legacy storage', async () => {
-  // This test validates that the force field is always boolean type
-  // The actual legacy string conversion happens in options.js save_options
-  
+// Legacy force field should be tolerated but not required
+runner.test('Should tolerate legacy force values in stored bindings', async () => {
   const config = new window.VSC.VideoSpeedConfig();
   await config.load();
-  
-  // Should have proper boolean types in all bindings
+
+  // Default bindings should no longer have force field
   const bindings = config.settings.keyBindings;
   bindings.forEach((binding, index) => {
-    assert.equal(typeof binding.force, 'boolean',
-      `Binding ${index} force should be boolean, got ${typeof binding.force}`);
+    assert.equal(binding.force, undefined,
+      `Binding ${index} should not have force field in defaults`);
   });
 });
 

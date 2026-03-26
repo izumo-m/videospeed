@@ -87,6 +87,7 @@ if (!window.VSC.VideoSpeedConfig) {
         // Apply loaded settings
         this.settings.lastSpeed = Number(storage.lastSpeed);
         this.settings.rememberSpeed = Boolean(storage.rememberSpeed);
+        this.settings.exclusiveKeys = Boolean(storage.exclusiveKeys);
         this.settings.audioBoolean = Boolean(storage.audioBoolean);
         this.settings.startHidden = Boolean(storage.startHidden);
         this.settings.controllerOpacity = Number(storage.controllerOpacity);
