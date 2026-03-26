@@ -363,12 +363,11 @@ describe('SettingsRaceCondition', () => {
     const config = new window.VSC.VideoSpeedConfig();
     await config.load();
 
-    const writtenPayloads = [];
-    const originalSet = window.VSC.StorageManager.set;
-    window.VSC.StorageManager.set = async (data) => {
-      writtenPayloads.push({ ...data });
+    const mockSet = vi.fn(async (data) => {
       return originalSet.call(window.VSC.StorageManager, data);
-    };
+    });
+    const originalSet = window.VSC.StorageManager.set;
+    window.VSC.StorageManager.set = mockSet;
 
     // First speed save
     await config.save({ lastSpeed: 1.5 });
@@ -379,12 +378,12 @@ describe('SettingsRaceCondition', () => {
 
     // Wait 500ms more — first timer would have fired but was reset
     await vi.advanceTimersByTimeAsync(500);
-    expect(writtenPayloads.length).toBe(0);
+    expect(mockSet).not.toHaveBeenCalled();
 
     // Wait remaining time
     await vi.advanceTimersByTimeAsync(600);
-    expect(writtenPayloads.length).toBe(1);
-    expect(writtenPayloads[0]).toEqual({ lastSpeed: 2.0 });
+    expect(mockSet).toHaveBeenCalledOnce();
+    expect(mockSet.mock.calls[0][0]).toEqual({ lastSpeed: 2.0 });
 
     window.VSC.StorageManager.set = originalSet;
   });
@@ -420,16 +419,14 @@ describe('SettingsRaceCondition', () => {
     const config = new window.VSC.VideoSpeedConfig();
     await config.load();
 
-    const writtenPayloads = [];
+    const mockSet = vi.fn();
     const originalSet = window.VSC.StorageManager.set;
-    window.VSC.StorageManager.set = async (data) => {
-      writtenPayloads.push({ ...data });
-    };
+    window.VSC.StorageManager.set = mockSet;
 
     await config.save({});
 
     // Empty save should short-circuit — no wasted round-trip to storage
-    expect(writtenPayloads.length).toBe(0);
+    expect(mockSet).not.toHaveBeenCalled();
 
     window.VSC.StorageManager.set = originalSet;
   });
@@ -444,12 +441,11 @@ describe('SettingsRaceCondition', () => {
     storage.keyBindings = [];
 
     // Set up spy BEFORE load() since we want to capture the init write
-    const writtenPayloads = [];
-    const originalSet = window.VSC.StorageManager.set;
-    window.VSC.StorageManager.set = async (data) => {
-      writtenPayloads.push(Object.keys(data));
+    const mockSet = vi.fn(async (data) => {
       return originalSet.call(window.VSC.StorageManager, data);
-    };
+    });
+    const originalSet = window.VSC.StorageManager.set;
+    window.VSC.StorageManager.set = mockSet;
 
     const config = new window.VSC.VideoSpeedConfig();
     await config.load();
@@ -458,8 +454,10 @@ describe('SettingsRaceCondition', () => {
     await vi.advanceTimersByTimeAsync(50);
 
     // The load() path calls save({keyBindings: ...}) — should write only keyBindings
-    expect(writtenPayloads.length >= 1).toBe(true);
-    const keyBindingsWrite = writtenPayloads.find((keys) => keys.includes('keyBindings'));
+    expect(mockSet.mock.calls.length >= 1).toBe(true);
+    const keyBindingsWrite = mockSet.mock.calls
+      .map((call) => Object.keys(call[0]))
+      .find((keys) => keys.includes('keyBindings'));
     expect(keyBindingsWrite).toBeDefined();
     expect(keyBindingsWrite.length).toBe(1);
 
@@ -613,12 +611,11 @@ describe('SettingsRaceCondition', () => {
     const storage = getMockStorage();
     storage.lastSpeed = 2.5; // user's real persisted speed
 
-    const writtenPayloads = [];
-    const originalSet = window.VSC.StorageManager.set;
-    window.VSC.StorageManager.set = async (data) => {
-      writtenPayloads.push({ ...data });
+    const mockSet = vi.fn(async (data) => {
       return originalSet.call(window.VSC.StorageManager, data);
-    };
+    });
+    const originalSet = window.VSC.StorageManager.set;
+    window.VSC.StorageManager.set = mockSet;
 
     const config = new window.VSC.VideoSpeedConfig();
     // Intentionally do NOT call load()
@@ -626,7 +623,7 @@ describe('SettingsRaceCondition', () => {
     // Attempt to save — should be blocked
     await config.save({ startHidden: true });
 
-    expect(writtenPayloads.length).toBe(0);
+    expect(mockSet).not.toHaveBeenCalled();
     expect(storage.lastSpeed).toBe(2.5);
 
     window.VSC.StorageManager.set = originalSet;
