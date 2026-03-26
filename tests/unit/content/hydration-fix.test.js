@@ -60,12 +60,6 @@ describe('HydrationFix', () => {
 
     // Verify JavaScript state tracking is working
     expect(window.VSC.initialized).toBe(true);
-
-    // Test double initialization prevention
-    if (window.VSC.initialized) {
-      // Skip initialization - this simulates the actual logic
-      expect(true).toBe(true);
-    }
   });
 
   it('CSS custom properties enable domain-specific styling without body modifications', () => {
@@ -103,23 +97,14 @@ describe('HydrationFix', () => {
   });
 
   it('Simple boolean flag prevents double initialization', () => {
-    // Test simple boolean flag approach
     window.VSC.initialized = false;
-
     expect(window.VSC.initialized).toBe(false);
 
-    // Simulate first initialization
-    if (!window.VSC.initialized) {
-      window.VSC.initialized = true;
-      expect(true).toBe(true);
-    }
+    // First initialization sets the flag
+    window.VSC.initialized = true;
+    expect(window.VSC.initialized).toBe(true);
 
-    // Simulate second initialization attempt
-    if (window.VSC.initialized) {
-      // This simulates the actual check in initializeDocument
-      expect(true).toBe(true);
-    }
-
+    // Second attempt should see it's already initialized
     expect(window.VSC.initialized).toBe(true);
   });
 });

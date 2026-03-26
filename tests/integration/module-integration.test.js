@@ -93,10 +93,8 @@ describe('ModuleIntegration', () => {
     // Should be able to set up event listeners
     eventManager.setupEventListeners(document);
 
-    // Should be able to clean up
+    // Should be able to clean up without throwing
     eventManager.cleanup();
-
-    expect(true).toBe(true); // If we get here without errors, integration works
   });
 
   it('startHidden setting should correctly control initial controller visibility', async () => {
