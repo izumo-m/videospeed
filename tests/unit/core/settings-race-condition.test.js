@@ -36,18 +36,17 @@ describe('SettingsRaceCondition', () => {
     await config.load();
 
     // Capture what gets written to storage
-    const writtenPayloads = [];
-    const originalSet = window.VSC.StorageManager.set;
-    window.VSC.StorageManager.set = async (data) => {
-      writtenPayloads.push({ ...data });
+    const mockSet = vi.fn(async (data) => {
       return originalSet.call(window.VSC.StorageManager, data);
-    };
+    });
+    const originalSet = window.VSC.StorageManager.set;
+    window.VSC.StorageManager.set = mockSet;
 
     // Save ONLY startHidden
     await config.save({ startHidden: true });
 
-    expect(writtenPayloads.length).toBe(1);
-    const written = writtenPayloads[0];
+    expect(mockSet).toHaveBeenCalledOnce();
+    const written = mockSet.mock.calls[0][0];
     const writtenKeys = Object.keys(written);
 
     // The payload should contain ONLY startHidden — not lastSpeed, not keyBindings, etc.
@@ -62,17 +61,16 @@ describe('SettingsRaceCondition', () => {
     const config = new window.VSC.VideoSpeedConfig();
     await config.load();
 
-    const writtenPayloads = [];
-    const originalSet = window.VSC.StorageManager.set;
-    window.VSC.StorageManager.set = async (data) => {
-      writtenPayloads.push({ ...data });
+    const mockSet = vi.fn(async (data) => {
       return originalSet.call(window.VSC.StorageManager, data);
-    };
+    });
+    const originalSet = window.VSC.StorageManager.set;
+    window.VSC.StorageManager.set = mockSet;
 
     await config.save({ startHidden: true, controllerOpacity: 0.8 });
 
-    expect(writtenPayloads.length).toBe(1);
-    const writtenKeys = Object.keys(writtenPayloads[0]).sort();
+    expect(mockSet).toHaveBeenCalledOnce();
+    const writtenKeys = Object.keys(mockSet.mock.calls[0][0]).sort();
     expect(writtenKeys).toEqual(['controllerOpacity', 'startHidden']);
 
     window.VSC.StorageManager.set = originalSet;
@@ -86,24 +84,23 @@ describe('SettingsRaceCondition', () => {
     await vi.advanceTimersByTimeAsync(1200);
 
     // Set up spy AFTER all prior async is drained
-    const writtenPayloads = [];
-    const originalSet = window.VSC.StorageManager.set;
-    window.VSC.StorageManager.set = async (data) => {
-      writtenPayloads.push({ ...data });
+    const mockSet = vi.fn(async (data) => {
       return originalSet.call(window.VSC.StorageManager, data);
-    };
+    });
+    const originalSet = window.VSC.StorageManager.set;
+    window.VSC.StorageManager.set = mockSet;
 
     // Trigger debounced save
     await config.save({ lastSpeed: 2.5 });
 
     // Nothing written yet (debounced)
-    expect(writtenPayloads.length).toBe(0);
+    expect(mockSet).not.toHaveBeenCalled();
 
     // Wait for debounce to fire
     await vi.advanceTimersByTimeAsync(1200);
 
-    expect(writtenPayloads.length).toBe(1);
-    const written = writtenPayloads[0];
+    expect(mockSet).toHaveBeenCalledOnce();
+    const written = mockSet.mock.calls[0][0];
     const writtenKeys = Object.keys(written);
     expect(writtenKeys.length).toBe(1);
     expect(writtenKeys[0]).toBe('lastSpeed');
@@ -310,12 +307,11 @@ describe('SettingsRaceCondition', () => {
     const config = new window.VSC.VideoSpeedConfig();
     await config.load();
 
-    const writtenPayloads = [];
-    const originalSet = window.VSC.StorageManager.set;
-    window.VSC.StorageManager.set = async (data) => {
-      writtenPayloads.push({ ...data });
+    const mockSet = vi.fn(async (data) => {
       return originalSet.call(window.VSC.StorageManager, data);
-    };
+    });
+    const originalSet = window.VSC.StorageManager.set;
+    window.VSC.StorageManager.set = mockSet;
 
     // Rapid speed changes
     await config.save({ lastSpeed: 1.1 });
@@ -324,7 +320,7 @@ describe('SettingsRaceCondition', () => {
     await config.save({ lastSpeed: 1.4 });
 
     // Nothing written yet
-    expect(writtenPayloads.length).toBe(0);
+    expect(mockSet).not.toHaveBeenCalled();
 
     // In-memory should have the latest value
     expect(config.settings.lastSpeed).toBe(1.4);
@@ -333,8 +329,8 @@ describe('SettingsRaceCondition', () => {
     await vi.advanceTimersByTimeAsync(1100);
 
     // Should write once with final value, and ONLY lastSpeed
-    expect(writtenPayloads.length).toBe(1);
-    expect(writtenPayloads[0]).toEqual({ lastSpeed: 1.4 });
+    expect(mockSet).toHaveBeenCalledOnce();
+    expect(mockSet.mock.calls[0][0]).toEqual({ lastSpeed: 1.4 });
 
     window.VSC.StorageManager.set = originalSet;
   });

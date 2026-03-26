@@ -89,34 +89,39 @@ describe('FKeys', () => {
     });
   });
 
-  it('Blacklisted keys should be properly handled in options UI', () => {
-    const BLACKLISTED_CODES = window.VSC.Constants.BLACKLISTED_CODES;
-    expect(BLACKLISTED_CODES).toBeDefined();
-    expect(BLACKLISTED_CODES instanceof Set).toBe(true);
+  describe('Blacklisted keys should be properly handled in options UI', () => {
+    it('BLACKLISTED_CODES should be a defined Set', () => {
+      const BLACKLISTED_CODES = window.VSC.Constants.BLACKLISTED_CODES;
+      expect(BLACKLISTED_CODES).toBeDefined();
+      expect(BLACKLISTED_CODES instanceof Set).toBe(true);
+    });
 
     // These modifier/navigation keys must be blocked
-    const expectedBlocked = [
-      'Tab',
-      'ShiftLeft',
-      'ShiftRight',
-      'ControlLeft',
-      'ControlRight',
-      'AltLeft',
-      'AltRight',
-      'MetaLeft',
-      'MetaRight',
-      'ContextMenu',
-      'CapsLock',
-    ];
-    expectedBlocked.forEach((code) => {
+    it.each([
+      ['Tab'],
+      ['ShiftLeft'],
+      ['ShiftRight'],
+      ['ControlLeft'],
+      ['ControlRight'],
+      ['AltLeft'],
+      ['AltRight'],
+      ['MetaLeft'],
+      ['MetaRight'],
+      ['ContextMenu'],
+      ['CapsLock'],
+    ])('should block modifier/navigation key: %s', (code) => {
+      const BLACKLISTED_CODES = window.VSC.Constants.BLACKLISTED_CODES;
       expect(BLACKLISTED_CODES.has(code)).toBe(true);
     });
 
     // F-keys and regular keys must NOT be blocked
-    const expectedAllowed = ['F13', 'KeyA', 'Space', 'Enter', 'KeyS', 'Digit1'];
-    expectedAllowed.forEach((code) => {
-      expect(BLACKLISTED_CODES.has(code)).toBe(false);
-    });
+    it.each([['F13'], ['KeyA'], ['Space'], ['Enter'], ['KeyS'], ['Digit1']])(
+      'should allow key: %s',
+      (code) => {
+        const BLACKLISTED_CODES = window.VSC.Constants.BLACKLISTED_CODES;
+        expect(BLACKLISTED_CODES.has(code)).toBe(false);
+      }
+    );
   });
 
   it('EventManager should handle F-keys correctly', async () => {

@@ -94,12 +94,10 @@ describe('Settings', () => {
     const config = new window.VSC.VideoSpeedConfig();
     await config.load();
 
-    let saveCount = 0;
+    const mockSet = vi.fn();
     const originalSet = window.VSC.StorageManager.set;
 
-    window.VSC.StorageManager.set = async () => {
-      saveCount++;
-    };
+    window.VSC.StorageManager.set = mockSet;
 
     // Multiple rapid speed updates
     await config.save({ lastSpeed: 1.5 });
@@ -107,14 +105,14 @@ describe('Settings', () => {
     await config.save({ lastSpeed: 2.0 });
 
     // Should not have saved yet
-    expect(saveCount).toBe(0);
+    expect(mockSet).not.toHaveBeenCalled();
     expect(config.settings.lastSpeed).toBe(2.0); // In-memory should update immediately
 
     // Wait for debounce delay
     await vi.advanceTimersByTimeAsync(1100);
 
     // Should have saved only once
-    expect(saveCount).toBe(1);
+    expect(mockSet).toHaveBeenCalledOnce();
 
     window.VSC.StorageManager.set = originalSet;
   });
@@ -123,17 +121,15 @@ describe('Settings', () => {
     const config = new window.VSC.VideoSpeedConfig();
     await config.load();
 
-    let saveCount = 0;
+    const mockSet = vi.fn();
     const originalSet = window.VSC.StorageManager.set;
 
-    window.VSC.StorageManager.set = async () => {
-      saveCount++;
-    };
+    window.VSC.StorageManager.set = mockSet;
 
     await config.save({ enabled: false });
 
     // Should save immediately
-    expect(saveCount).toBe(1);
+    expect(mockSet).toHaveBeenCalledOnce();
 
     window.VSC.StorageManager.set = originalSet;
   });
@@ -142,12 +138,10 @@ describe('Settings', () => {
     const config = new window.VSC.VideoSpeedConfig();
     await config.load();
 
-    let saveCount = 0;
+    const mockSet = vi.fn();
     const originalSet = window.VSC.StorageManager.set;
 
-    window.VSC.StorageManager.set = async () => {
-      saveCount++;
-    };
+    window.VSC.StorageManager.set = mockSet;
 
     // First speed update
     await config.save({ lastSpeed: 1.5 });
@@ -158,11 +152,11 @@ describe('Settings', () => {
 
     // Wait another 500ms (total 1000ms from first, but only 500ms from second)
     await vi.advanceTimersByTimeAsync(500);
-    expect(saveCount).toBe(0); // Should not have saved yet
+    expect(mockSet).not.toHaveBeenCalled(); // Should not have saved yet
 
     // Wait remaining 600ms (total 1100ms from second update)
     await vi.advanceTimersByTimeAsync(600);
-    expect(saveCount).toBe(1); // Should have saved now
+    expect(mockSet).toHaveBeenCalledOnce(); // Should have saved now
     expect(config.settings.lastSpeed).toBe(2.0); // Final value
 
     window.VSC.StorageManager.set = originalSet;
@@ -172,12 +166,10 @@ describe('Settings', () => {
     const config = new window.VSC.VideoSpeedConfig();
     await config.load();
 
-    let savedValue = null;
+    const mockSet = vi.fn();
     const originalSet = window.VSC.StorageManager.set;
 
-    window.VSC.StorageManager.set = async (settings) => {
-      savedValue = settings.lastSpeed;
-    };
+    window.VSC.StorageManager.set = mockSet;
 
     // Multiple rapid speed updates
     await config.save({ lastSpeed: 1.2 });
@@ -188,7 +180,8 @@ describe('Settings', () => {
     await vi.advanceTimersByTimeAsync(1100);
 
     // Should have saved only the final value
-    expect(savedValue).toBe(2.3);
+    expect(mockSet).toHaveBeenCalledOnce();
+    expect(mockSet.mock.calls[0][0].lastSpeed).toBe(2.3);
 
     window.VSC.StorageManager.set = originalSet;
   });
@@ -197,23 +190,21 @@ describe('Settings', () => {
     const config = new window.VSC.VideoSpeedConfig();
     await config.load();
 
-    let saveCount = 0;
+    const mockSet = vi.fn();
     const originalSet = window.VSC.StorageManager.set;
 
-    window.VSC.StorageManager.set = async () => {
-      saveCount++;
-    };
+    window.VSC.StorageManager.set = mockSet;
 
     // Speed update
     await config.save({ lastSpeed: 1.75 });
 
     // In-memory should update immediately, before storage save
     expect(config.settings.lastSpeed).toBe(1.75);
-    expect(saveCount).toBe(0); // Storage not saved yet
+    expect(mockSet).not.toHaveBeenCalled(); // Storage not saved yet
 
     // Wait for debounce
     await vi.advanceTimersByTimeAsync(1100);
-    expect(saveCount).toBe(1); // Now saved to storage
+    expect(mockSet).toHaveBeenCalledOnce(); // Now saved to storage
 
     window.VSC.StorageManager.set = originalSet;
   });
