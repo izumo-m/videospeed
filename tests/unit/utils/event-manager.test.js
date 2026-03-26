@@ -88,8 +88,8 @@ runner.test('cooldown should expire after timeout', async () => {
   eventManager.refreshCoolDown();
   assert.true(eventManager.coolDown !== false);
 
-  // Wait for cooldown to expire (COOLDOWN_MS + buffer)
-  const waitMs = (window.VSC.EventManager?.COOLDOWN_MS || 50) + 50;
+  // Wait for cooldown to expire (BASE_COOLDOWN_MS + buffer)
+  const waitMs = (window.VSC.EventManager?.BASE_COOLDOWN_MS || 50) + 50;
   await new Promise(resolve => setTimeout(resolve, waitMs));
 
   // Cooldown should be expired
@@ -205,13 +205,12 @@ runner.test('setSpeed should not cause handleRateChange to process event as exte
 });
 
 // =============================================================================
-// FORCE MODE / DEAD CODE TESTS
+// FIGHT BACK / EXTENSION EVENT TESTS
 // =============================================================================
 
-runner.test('forceLastSavedSpeed should restore authoritative speed on external ratechange', async () => {
+runner.test('should restore authoritative speed on external ratechange', async () => {
   const config = window.VSC.videoSpeedConfig;
   await config.load();
-  config.settings.forceLastSavedSpeed = true;
   config.settings.lastSpeed = 1.5;
 
   const actionHandler = new window.VSC.ActionHandler(config, null);
@@ -233,15 +232,14 @@ runner.test('forceLastSavedSpeed should restore authoritative speed on external 
   eventManager.handleRateChange(mockEvent);
 
   assert.equal(mockVideo.playbackRate, 1.5,
-    'Force mode should restore authoritative speed');
+    'Should restore authoritative speed on external change');
   assert.true(eventStopped,
-    'Force mode should stop event propagation');
+    'Should stop event propagation when fighting back');
 });
 
-runner.test('extension-originated events should be ignored before force mode check', async () => {
+runner.test('extension-originated events should be ignored before fight detection', async () => {
   const config = window.VSC.videoSpeedConfig;
   await config.load();
-  config.settings.forceLastSavedSpeed = true;
   config.settings.lastSpeed = 1.5;
 
   const actionHandler = new window.VSC.ActionHandler(config, null);
@@ -260,9 +258,9 @@ runner.test('extension-originated events should be ignored before force mode che
 
   eventManager.handleRateChange(mockEvent);
 
-  // Should return early at the origin check, NOT enter force mode
+  // Should return early at the origin check, NOT enter fight detection
   assert.equal(mockVideo.playbackRate, 2.0,
-    'Extension events should be ignored, not processed by force mode');
+    'Extension events should be ignored, not processed by fight detection');
   assert.false(eventStopped,
     'Extension events should return without stopping propagation');
 });
@@ -275,7 +273,6 @@ runner.test('should re-apply speed when site resets it (fight back)', async () =
   const config = window.VSC.videoSpeedConfig;
   await config.load();
   config.settings.lastSpeed = 2.0;
-  config.settings.forceLastSavedSpeed = false;
 
   const actionHandler = new window.VSC.ActionHandler(config, null);
   const eventManager = new window.VSC.EventManager(config, actionHandler);
@@ -304,7 +301,6 @@ runner.test('should surrender after MAX_FIGHT_COUNT rapid resets', async () => {
   const config = window.VSC.videoSpeedConfig;
   await config.load();
   config.settings.lastSpeed = 2.0;
-  config.settings.forceLastSavedSpeed = false;
 
   let externalAdjustCalled = false;
   const actionHandler = new window.VSC.ActionHandler(config, null);
@@ -322,9 +318,9 @@ runner.test('should surrender after MAX_FIGHT_COUNT rapid resets', async () => {
 
   const maxFights = window.VSC.EventManager.MAX_FIGHT_COUNT;
 
-  // Simulate resets — each fight-back restores speed AND starts cooldown.
+  // Simulate resets up to one below surrender threshold.
   // Clear cooldown between fights to simulate site resetting after cooldown expires.
-  for (let i = 0; i < maxFights; i++) {
+  for (let i = 0; i < maxFights - 1; i++) {
     eventManager.coolDown = false; // Simulate cooldown expiry
     mockVideo.playbackRate = 1.0;  // Site resets to 1.0
     eventManager.handleRateChange({
@@ -335,7 +331,7 @@ runner.test('should surrender after MAX_FIGHT_COUNT rapid resets', async () => {
     });
   }
 
-  // The next reset should trigger surrender
+  // The next reset should trigger surrender (fightCount reaches MAX_FIGHT_COUNT)
   eventManager.coolDown = false;
   mockVideo.playbackRate = 1.0;
   externalAdjustCalled = false;
@@ -354,7 +350,6 @@ runner.test('fight count should reset after quiet period', async () => {
   const config = window.VSC.videoSpeedConfig;
   await config.load();
   config.settings.lastSpeed = 2.0;
-  config.settings.forceLastSavedSpeed = false;
 
   const actionHandler = new window.VSC.ActionHandler(config, null);
   const eventManager = new window.VSC.EventManager(config, actionHandler);

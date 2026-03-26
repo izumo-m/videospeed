@@ -383,26 +383,12 @@ function add_shortcut() {
     customs_element.children[customs_element.childElementCount - 1]
   );
 
-  // If experimental features are already enabled, add the force select
-  const experimentalButton = document.getElementById("experimental");
-  if (experimentalButton && experimentalButton.disabled) {
-    const customValue = div.querySelector('.customValue');
-    const select = document.createElement('select');
-    select.className = 'customForce show';
-    select.innerHTML = `
-      <option value="false">Default behavior</option>
-      <option value="true">Override site keys</option>
-    `;
-    customValue.parentNode.insertBefore(select, customValue.nextSibling);
-  }
 }
 
 function createKeyBindings(item) {
   const action = item.querySelector(".customDo").value;
   const input = item.querySelector(".customKey");
   const value = Number(item.querySelector(".customValue").value);
-  const forceElement = item.querySelector(".customForce");
-  const force = forceElement ? forceElement.value === 'true' : false;
   const predefined = !!item.id;
 
   const binding = {
@@ -412,7 +398,6 @@ function createKeyBindings(item) {
     keyCode: input.keyCode,               // NEW field name — canonical legacy integer
     displayKey: input.displayKey,         // display-friendly from event.key
     value: value,
-    force: force,
     predefined: predefined,
   };
 
@@ -486,7 +471,7 @@ async function save_options() {
     );
 
     var rememberSpeed = document.getElementById("rememberSpeed").checked;
-    var forceLastSavedSpeed = document.getElementById("forceLastSavedSpeed").checked;
+    var exclusiveKeys = document.getElementById("exclusiveKeys").checked;
     var audioBoolean = document.getElementById("audioBoolean").checked;
     var startHidden = document.getElementById("startHidden").checked;
     var controllerOpacity = Number(document.getElementById("controllerOpacity").value);
@@ -526,7 +511,7 @@ async function save_options() {
     // Use VideoSpeedConfig to save settings (sync storage)
     const settingsToSave = {
       rememberSpeed: rememberSpeed,
-      forceLastSavedSpeed: forceLastSavedSpeed,
+      exclusiveKeys: exclusiveKeys,
       audioBoolean: audioBoolean,
       startHidden: startHidden,
       controllerOpacity: controllerOpacity,
@@ -575,7 +560,7 @@ async function restore_options() {
     const storage = window.VSC.videoSpeedConfig.settings;
 
     document.getElementById("rememberSpeed").checked = storage.rememberSpeed;
-    document.getElementById("forceLastSavedSpeed").checked = storage.forceLastSavedSpeed;
+    document.getElementById("exclusiveKeys").checked = storage.exclusiveKeys;
     document.getElementById("audioBoolean").checked = storage.audioBoolean;
     document.getElementById("startHidden").checked = storage.startHidden;
     document.getElementById("controllerOpacity").value = storage.controllerOpacity;
@@ -602,16 +587,12 @@ async function restore_options() {
 
         const keyInput = document.querySelector("#" + item["action"] + " .customKey");
         const valueInput = document.querySelector("#" + item["action"] + " .customValue");
-        const forceInput = document.querySelector("#" + item["action"] + " .customForce");
 
         if (keyInput) {
           setShortcutInput(keyInput, item);
         }
         if (valueInput) {
           valueInput.value = item["value"];
-        }
-        if (forceInput) {
-          forceInput.value = String(item["force"]);
         }
       } else {
         // Handle custom shortcuts
@@ -628,30 +609,7 @@ async function restore_options() {
 
         setShortcutInput(dom.querySelector(".customKey"), item);
         dom.querySelector(".customValue").value = item["value"];
-        // If force value exists in settings but element doesn't exist, create it
-        if (item["force"] !== undefined && !dom.querySelector(".customForce")) {
-          const customValue = dom.querySelector('.customValue');
-          const select = document.createElement('select');
-          select.className = 'customForce'; // Don't add 'show' class initially
-          select.innerHTML = `
-            <option value="false">Default behavior</option>
-            <option value="true">Override site keys</option>
-          `;
-          select.value = String(item["force"]);
-          customValue.parentNode.insertBefore(select, customValue.nextSibling);
-        } else {
-          const forceSelect = dom.querySelector(".customForce");
-          if (forceSelect) {
-            forceSelect.value = String(item["force"]);
-          }
-        }
       }
-    }
-
-    // Check if any keybindings have force property set, if so, show experimental features
-    const hasExperimentalFeatures = keyBindings.some(kb => kb.force !== undefined && kb.force !== false);
-    if (hasExperimentalFeatures) {
-      toggle_experimental();
     }
   } catch (error) {
     console.error("Failed to restore options:", error);
@@ -716,50 +674,12 @@ function toggle_experimental() {
   if (isVisible) {
     // Hide advanced features
     advancedRows.forEach((row) => row.classList.remove('show'));
-    document.querySelectorAll('.customForce').forEach((el) => el.classList.remove('show'));
     button.textContent = "Show advanced features";
     return;
   }
 
   // Show advanced feature rows
   advancedRows.forEach((row) => row.classList.add('show'));
-
-  // Create force selects on first show (only once)
-  const customRows = document.querySelectorAll('.row.customs');
-  customRows.forEach((row) => {
-    const existingSelect = row.querySelector('.customForce');
-
-    if (!existingSelect) {
-      const customValue = row.querySelector('.customValue');
-      const newSelect = document.createElement('select');
-      newSelect.className = 'customForce show';
-      newSelect.innerHTML = `
-        <option value="false">Allow event propagation</option>
-        <option value="true">Disable event propagation</option>
-      `;
-
-      // Restore saved force value
-      const rowId = row.id;
-      if (rowId && window.VSC.videoSpeedConfig?.settings.keyBindings) {
-        const savedBinding = window.VSC.videoSpeedConfig.settings.keyBindings.find(kb => kb.action === rowId);
-        if (savedBinding && savedBinding.force !== undefined) {
-          newSelect.value = String(savedBinding.force);
-        }
-      } else if (!rowId) {
-        const rowIndex = Array.from(row.parentElement.querySelectorAll('.row.customs:not([id])')).indexOf(row);
-        const customBindings = window.VSC.videoSpeedConfig?.settings.keyBindings?.filter(kb => !kb.predefined) || [];
-        if (customBindings[rowIndex]?.force !== undefined) {
-          newSelect.value = String(customBindings[rowIndex].force);
-        }
-      }
-
-      if (customValue) {
-        customValue.parentNode.insertBefore(newSelect, customValue.nextSibling);
-      }
-    } else {
-      existingSelect.classList.add('show');
-    }
-  });
 
   button.textContent = "Hide advanced features";
 }

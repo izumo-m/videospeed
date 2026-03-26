@@ -30,7 +30,7 @@ if (!window.VSC.Constants.DEFAULT_SETTINGS) {
     lastSpeed: 1.0, // default 1x
     enabled: true, // default enabled
     rememberSpeed: false, // default: false
-    forceLastSavedSpeed: false, //default: false
+    exclusiveKeys: false, // default: false
     audioBoolean: true, // default: true (enable audio controller support)
     startHidden: false, // default: false
     controllerOpacity: 0.3, // default: 0.3

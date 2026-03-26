@@ -411,7 +411,7 @@ runner.test('adjustSpeed should not corrupt lastSpeed on external changes', asyn
   assert.equal(config.settings.lastSpeed, 1.5);
 
   // External change applies to playback but must NOT update lastSpeed
-  // (forceLastSavedSpeed enforcement happens upstream in event-manager fight detection)
+  // (fight detection enforcement happens upstream in event-manager)
   actionHandler.adjustSpeed(mockVideo, 2.0, { source: 'external' });
   assert.equal(mockVideo.playbackRate, 2.0); // External change reaches video
   assert.equal(config.settings.lastSpeed, 1.5); // But lastSpeed is preserved
@@ -519,7 +519,6 @@ runner.test('do not persist video speed to storage', async () => {
   const config = window.VSC.videoSpeedConfig;
   await config.load();
   config.settings.rememberSpeed = false;
-  config.settings.forceLastSavedSpeed = false;
 
   const eventManager = new window.VSC.EventManager(config, null);
   const actionHandler = new window.VSC.ActionHandler(config, eventManager);
@@ -552,7 +551,6 @@ runner.test('rememberSpeed: true should only store global speed', async () => {
   const config = window.VSC.videoSpeedConfig;
   await config.load();
   config.settings.rememberSpeed = true;
-  config.settings.forceLastSavedSpeed = false;
 
   // Clear any existing speeds from previous tests
 
@@ -737,7 +735,6 @@ runner.test('adjustSpeed should handle edge cases and error conditions', async (
 runner.test('adjustSpeed should preserve lastSpeed across external changes', async () => {
   const config = window.VSC.videoSpeedConfig;
   await config.load();
-  config.settings.forceLastSavedSpeed = true;
   config.settings.rememberSpeed = true;
   config.settings.lastSpeed = 1.5;
 

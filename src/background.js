@@ -42,6 +42,9 @@ async function migrateConfig() {
     'speeds',
     'version',
 
+    // Replaced by smarter fight-back defaults in event-manager.js
+    'forceLastSavedSpeed',
+
     // Migrated to keyBindings array in v0.6.x
     'resetSpeed',
     'speedStep',

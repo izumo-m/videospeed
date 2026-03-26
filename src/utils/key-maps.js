@@ -195,15 +195,15 @@ export const PREDEFINED_ACTIONS = [
  * migration Phase 4 (background.js), and restore_defaults (options.js).
  */
 export const DEFAULT_BINDINGS = Object.freeze({
-  slower:  { code: 'KeyS', key: 83, keyCode: 83, displayKey: 's', value: 0.1, force: false },
-  faster:  { code: 'KeyD', key: 68, keyCode: 68, displayKey: 'd', value: 0.1, force: false },
-  rewind:  { code: 'KeyZ', key: 90, keyCode: 90, displayKey: 'z', value: 10,  force: false },
-  advance: { code: 'KeyX', key: 88, keyCode: 88, displayKey: 'x', value: 10,  force: false },
-  reset:   { code: 'KeyR', key: 82, keyCode: 82, displayKey: 'r', value: 1.0, force: false },
-  fast:    { code: 'KeyG', key: 71, keyCode: 71, displayKey: 'g', value: 1.8, force: false },
-  display: { code: 'KeyV', key: 86, keyCode: 86, displayKey: 'v', value: 0,   force: false },
-  mark:    { code: 'KeyM', key: 77, keyCode: 77, displayKey: 'm', value: 0,   force: false },
-  jump:    { code: 'KeyJ', key: 74, keyCode: 74, displayKey: 'j', value: 0,   force: false },
+  slower:  { code: 'KeyS', key: 83, keyCode: 83, displayKey: 's', value: 0.1 },
+  faster:  { code: 'KeyD', key: 68, keyCode: 68, displayKey: 'd', value: 0.1 },
+  rewind:  { code: 'KeyZ', key: 90, keyCode: 90, displayKey: 'z', value: 10  },
+  advance: { code: 'KeyX', key: 88, keyCode: 88, displayKey: 'x', value: 10  },
+  reset:   { code: 'KeyR', key: 82, keyCode: 82, displayKey: 'r', value: 1.0 },
+  fast:    { code: 'KeyG', key: 71, keyCode: 71, displayKey: 'g', value: 1.8 },
+  display: { code: 'KeyV', key: 86, keyCode: 86, displayKey: 'v', value: 0   },
+  mark:    { code: 'KeyM', key: 77, keyCode: 77, displayKey: 'm', value: 0   },
+  jump:    { code: 'KeyJ', key: 74, keyCode: 74, displayKey: 'j', value: 0   },
 });
 
 /** event.code values that must not be recorded as shortcuts. */

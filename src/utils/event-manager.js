@@ -97,7 +97,7 @@ class EventManager {
     if (keyBinding) {
       this.actionHandler.runAction(keyBinding.action, keyBinding.value, event);
 
-      if (keyBinding.force) {
+      if (this.config.settings.exclusiveKeys) {
         event.preventDefault();
         event.stopPropagation();
       }
@@ -254,12 +254,9 @@ class EventManager {
       return;
     }
 
-    // Fight detection: if site changed speed away from what we set, fight back.
-    // forceLastSavedSpeed = fight forever (Infinity retries); otherwise surrender after MAX_FIGHT_COUNT.
+    // Fight detection: if site changed speed away from what we set, fight back
+    // with exponential backoff cooldown, then surrender after MAX_FIGHT_COUNT.
     const authoritativeSpeed = this.config.settings.lastSpeed;
-    const maxRetries = this.config.settings.forceLastSavedSpeed
-      ? Infinity
-      : EventManager.MAX_FIGHT_COUNT;
 
     if (authoritativeSpeed && Math.abs(video.playbackRate - authoritativeSpeed) > 0.01) {
       this.fightCount++;
@@ -271,7 +268,7 @@ class EventManager {
         this.fightTimer = null;
       }, EventManager.FIGHT_WINDOW_MS);
 
-      if (this.fightCount > maxRetries) {
+      if (this.fightCount >= EventManager.MAX_FIGHT_COUNT) {
         // Surrender — accept the site's speed
         window.VSC.logger.info(
           `Fight detection: surrendering after ${this.fightCount} resets. Accepting site speed ${video.playbackRate}`
@@ -279,12 +276,16 @@ class EventManager {
         this.fightCount = 0;
         // Fall through to accept the external change below
       } else {
-        // Fight back — restore our speed
+        // Fight back — restore our speed with exponential backoff
+        const cooldown = Math.min(
+          EventManager.BASE_COOLDOWN_MS * Math.pow(2, this.fightCount - 1),
+          EventManager.MAX_COOLDOWN_MS
+        );
         window.VSC.logger.info(
-          `Fight detection: attempt ${this.fightCount}/${maxRetries}, re-applying ${authoritativeSpeed}`
+          `Fight detection: attempt ${this.fightCount}/${EventManager.MAX_FIGHT_COUNT}, re-applying ${authoritativeSpeed} (cooldown ${cooldown}ms)`
         );
         video.playbackRate = authoritativeSpeed;
-        this.refreshCoolDown();
+        this.refreshCoolDown(cooldown);
         event.stopImmediatePropagation();
         return;
       }
@@ -302,8 +303,8 @@ class EventManager {
   /**
    * Start cooldown period to prevent event spam
    */
-  refreshCoolDown() {
-    window.VSC.logger.debug('Begin refreshCoolDown');
+  refreshCoolDown(duration = EventManager.BASE_COOLDOWN_MS) {
+    window.VSC.logger.debug(`Begin refreshCoolDown (${duration}ms)`);
 
     if (this.coolDown) {
       clearTimeout(this.coolDown);
@@ -311,7 +312,7 @@ class EventManager {
 
     this.coolDown = setTimeout(() => {
       this.coolDown = false;
-    }, EventManager.COOLDOWN_MS);
+    }, duration);
 
     window.VSC.logger.debug('End refreshCoolDown');
   }
@@ -354,14 +355,17 @@ EventManager.modifiersMatch = function(mods, ctrl, alt, meta, shift) {
          mods.meta === meta && mods.shift === shift;
 };
 
-// Cooldown duration (ms) for ratechange handling
-EventManager.COOLDOWN_MS = 200;
+// Base cooldown duration (ms) for ratechange handling; doubles each fight-back retry
+EventManager.BASE_COOLDOWN_MS = 200;
+
+// Maximum cooldown duration (ms) during fight-back backoff
+EventManager.MAX_COOLDOWN_MS = 2000;
 
 // Fight detection: surrender after this many rapid site-initiated resets
-EventManager.MAX_FIGHT_COUNT = 3;
+EventManager.MAX_FIGHT_COUNT = 5;
 
 // Fight detection: reset fight count after this quiet period (ms)
-EventManager.FIGHT_WINDOW_MS = 3000;
+EventManager.FIGHT_WINDOW_MS = EventManager.MAX_COOLDOWN_MS + 1000;
 
 // Create singleton instance
 window.VSC.EventManager = EventManager;

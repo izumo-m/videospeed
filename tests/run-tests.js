@@ -41,7 +41,6 @@ global.chrome = {
           lastSpeed: 1.0,
           keyBindings: [],
           rememberSpeed: false,
-          forceLastSavedSpeed: false,
           audioBoolean: false,
           startHidden: false,
           controllerOpacity: 0.3,
