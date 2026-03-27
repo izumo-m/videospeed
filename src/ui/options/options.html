@@ -1,136 +1,157 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
+  <head>
+    <title>Video Speed Controller: Options</title>
+    <link rel="stylesheet" href="options.css" />
+    <script src="options.js"></script>
+  </head>
 
-<head>
-  <title>Video Speed Controller: Options</title>
-  <link rel="stylesheet" href="options.css" />
-  <script src="options.js"></script>
-</head>
-
-<body>
-  <header>
-    <nav class="header-tabs">
-      <button id="tab-settings" class="header-tab active">Settings</button>
-      <button id="tab-advanced" class="header-tab">Advanced</button>
-    </nav>
-    <nav class="header-actions">
-      <button id="import">Import</button>
-      <button id="export">Export</button>
-      <input type="file" id="importFile" accept=".json" hidden />
-    </nav>
-  </header>
-
-  <!-- ============ SETTINGS TAB ============ -->
-  <div id="panel-settings">
-    <section id="customs">
-      <h3>Shortcuts</h3>
-      <div id="shortcuts-container"></div>
-      <button id="add">Add New</button>
-    </section>
-
-    <section>
-      <h3>Preferences</h3>
-      <div class="row">
-        <label for="audioBoolean">Audio support<br />
-          <em>Show speed controls on audio elements.</em></label>
-        <input id="audioBoolean" type="checkbox" />
-      </div>
-      <div class="row">
-        <label for="rememberSpeed">Remember playback speed<br />
-          <em>Store and auto-apply the last used speed to all new videos.</em></label>
-        <input id="rememberSpeed" type="checkbox" />
-      </div>
-      <div class="row">
-        <label for="startHidden">Hide controller by default<br />
-          <em>Controller stays hidden until toggled via shortcut.</em></label>
-        <input id="startHidden" type="checkbox" />
-      </div>
-      <div class="row">
-        <label for="exclusiveKeys">Exclusive keyboard shortcuts<br />
-          <em>When possible, prevent websites from also handling VSC shortcut keys.</em></label>
-        <input id="exclusiveKeys" type="checkbox" />
-      </div>
-    </section>
-  </div>
-
-  <!-- ============ ADVANCED TAB ============ -->
-  <div id="panel-advanced" style="display: none;">
-    <section>
-      <div class="row">
-        <label for="controllerOpacity">Controller opacity</label>
-        <input id="controllerOpacity" type="text" value="" />
-      </div>
-      <div class="row">
-        <label for="controllerButtonSize">Controller Button Size</label>
-        <input id="controllerButtonSize" type="text" value="" />
-      </div>
-      <div class="row">
-        <label for="logLevel">Console Log Level<br />
-          <em>Set verbosity in the browser console</em></label>
-        <select id="logLevel">
-          <option value="1">None</option>
-          <option value="2">Error</option>
-          <option value="3">Warning</option>
-          <option value="4">Info</option>
-          <option value="5">Debug</option>
-          <option value="6">Verbose</option>
-        </select>
-      </div>
-      <div class="row">
-        <label>Site rules<br />
-          <em>Per-site overrides. Use a domain or <a href="https://www.regexpal.com/">regex</a>
-            (e.g. <code>/\.edu$/i</code>). Check "Disable" to turn off the extension on that site.
-            Set a speed to override the default.</em>
-        </label>
-        <div id="site-rules-container">
-          <div class="site-rules-header">
-            <span>Pattern</span>
-            <span>Disable</span>
-            <span>Speed</span>
-          </div>
+  <body>
+    <header>
+      <nav class="header-tabs">
+        <img src="../../assets/icons/icon48.png" alt="" class="header-icon" />
+        <button id="tab-settings" class="header-tab active">Settings</button>
+        <button id="tab-advanced" class="header-tab">Advanced</button>
+        <button id="tab-faq" class="header-tab">FAQ</button>
+      </nav>
+      <div class="split-button">
+        <button id="save" class="split-primary">Save</button>
+        <button id="split-toggle" class="split-arrow" aria-label="More actions">&#9662;</button>
+        <div id="split-menu" class="split-dropdown" hidden>
+          <button id="import">Import</button>
+          <button id="export">Export</button>
+          <button id="restore">Reset</button>
         </div>
-        <button id="add-site-rule">Add Site Rule</button>
-        <div id="siteRulesValidation" class="css-validation"></div>
+        <input type="file" id="importFile" accept=".json" hidden />
       </div>
-      <div class="row">
-        <label for="controllerCSS">Controller CSS<br />
-          <em>Customize controller positioning per site. <a href="#" id="resetCSS">Reset to defaults</a>.</em>
-        </label>
-        <textarea id="controllerCSS" rows="20" cols="60"></textarea>
-        <div id="cssValidation" class="css-validation"></div>
-      </div>
-    </section>
-  </div>
+    </header>
 
-  <!-- ============ SHARED (always visible) ============ -->
-  <div class="button-group">
-    <button id="save">Save</button>
-    <button id="restore">Restore defaults</button>
-  </div>
+    <!-- ============ SETTINGS TAB ============ -->
+    <div id="panel-settings">
+      <section id="customs">
+        <h3>Shortcuts</h3>
+        <div id="shortcuts-container"></div>
+        <button id="add">Add New</button>
+      </section>
 
-  <div id="status"></div>
-
-  <section>
-    <h3>Help & Support</h3>
-    <div id="faq">
-      <h4>The speed controls are not showing up for local videos or Incognito mode?</h4>
-      <p>
-        To enable playback of local media (e.g. File &gt; Open File) or Incognito mode, you need
-        to manually grant additional permissions to the extension.
-      </p>
-      <ul>
-        <li>In a new tab, navigate to <code>chrome://extensions</code></li>
-        <li>
-          Find "Video Speed Controller" extension in the list and enable "Allow
-          access to file URLs" and/or "Allow in Incognito".
-        </li>
-      </ul>
+      <section>
+        <h3>Preferences</h3>
+        <div class="row">
+          <label for="audioBoolean"
+            >Audio support<br />
+            <em>Show speed controls on audio elements.</em></label
+          >
+          <input id="audioBoolean" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="rememberSpeed"
+            >Remember playback speed<br />
+            <em>Store and auto-apply the last used speed to all new videos.</em></label
+          >
+          <input id="rememberSpeed" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="startHidden"
+            >Hide controller by default<br />
+            <em>Controller stays hidden until toggled via shortcut.</em></label
+          >
+          <input id="startHidden" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="exclusiveKeys"
+            >Exclusive keyboard shortcuts<br />
+            <em>When possible, prevent websites from also handling VSC shortcut keys.</em></label
+          >
+          <input id="exclusiveKeys" type="checkbox" />
+        </div>
+      </section>
     </div>
-    <div class="row">
-      <button id="about" class="secondary">About Video Speed Controller</button>
-      <button id="feedback" class="secondary">Send Feedback</button>
-    </div>
-  </section>
-</body>
 
+    <!-- ============ ADVANCED TAB ============ -->
+    <div id="panel-advanced" style="display: none">
+      <section>
+        <div class="row">
+          <label for="controllerOpacity">Controller opacity</label>
+          <input id="controllerOpacity" type="text" value="" />
+        </div>
+        <div class="row">
+          <label for="controllerButtonSize">Controller Button Size</label>
+          <input id="controllerButtonSize" type="text" value="" />
+        </div>
+        <div class="row">
+          <label for="logLevel"
+            >Console Log Level<br />
+            <em>Set verbosity in the browser console</em></label
+          >
+          <select id="logLevel">
+            <option value="1">None</option>
+            <option value="2">Error</option>
+            <option value="3">Warning</option>
+            <option value="4">Info</option>
+            <option value="5">Debug</option>
+            <option value="6">Verbose</option>
+          </select>
+        </div>
+        <div class="row">
+          <label
+            >Site rules<br />
+            <em
+              >Per-site overrides. Use a domain or
+              <a href="https://www.regexpal.com/">regex</a> (e.g. <code>/\.edu$/i</code>). Check
+              "Disable" to turn off the extension on that site. Set a speed to override the
+              default.</em
+            >
+          </label>
+          <div id="site-rules-container">
+            <div class="site-rules-header">
+              <span>Pattern</span>
+              <span>Disable</span>
+              <span>Speed</span>
+            </div>
+          </div>
+          <button id="add-site-rule">Add Site Rule</button>
+          <div id="siteRulesValidation" class="css-validation"></div>
+        </div>
+        <div class="row">
+          <label for="controllerCSS"
+            >Controller CSS<br />
+            <em
+              >Customize controller positioning per site.
+              <a href="#" id="resetCSS">Reset to defaults</a>.</em
+            >
+          </label>
+          <textarea id="controllerCSS" rows="20" cols="60"></textarea>
+          <div id="cssValidation" class="css-validation"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- status bar -->
+
+    <div id="status"></div>
+
+    <!-- ============ FAQ TAB ============ -->
+    <div id="panel-faq" style="display: none">
+      <section>
+        <div id="faq">
+          <h4>The speed controls are not showing up for local videos or Incognito mode?</h4>
+          <p>
+            To enable playback of local media (e.g. File &gt; Open File) or Incognito mode, you need
+            to manually grant additional permissions to the extension.
+          </p>
+          <ul>
+            <li>In a new tab, navigate to <code>chrome://extensions</code></li>
+            <li>
+              Find "Video Speed Controller" extension in the list and enable "Allow access to file
+              URLs" and/or "Allow in Incognito".
+            </li>
+          </ul>
+        </div>
+        <div class="row">
+          <button id="about" class="secondary">About Video Speed Controller</button>
+          <button id="feedback" class="secondary">Send Feedback</button>
+        </div>
+      </section>
+    </div>
+  </body>
 </html>

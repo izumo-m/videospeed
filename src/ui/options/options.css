@@ -61,7 +61,12 @@ html {
   font-size: 1em;
   background-color: var(--md-surface);
   color: var(--md-on-surface);
-  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family:
+    'Roboto',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -73,12 +78,19 @@ body {
 
 header {
   margin: 0 -20px 24px;
-  padding: 0 40px;
+  padding: 0 24px;
   background: var(--md-surface-container);
   border-bottom: 1px solid var(--md-outline-variant);
   display: flex;
   align-items: stretch;
   justify-content: space-between;
+}
+
+.header-icon {
+  width: 24px;
+  height: 24px;
+  align-self: center;
+  margin-right: 8px;
 }
 
 .header-tabs {
@@ -97,7 +109,9 @@ header {
   padding: 16px 20px;
   margin-bottom: -1px;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
   outline: none;
 }
 
@@ -114,31 +128,90 @@ header {
   border-bottom-color: var(--md-primary);
 }
 
-.header-actions {
+/* Split button: [Save | ▾] with dropdown
+ * Global button rule sets: padding 0 24px, min-height 40px, border-radius 20px,
+ * background var(--md-primary), color var(--md-on-primary), overflow hidden.
+ * We override each of those here. */
+.split-button {
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: 16px;
+  align-items: stretch;
+  align-self: center;
 }
 
-.header-actions button {
+.split-button button.split-primary,
+.split-button button.split-arrow {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--md-on-surface-variant);
+  border: 1px solid var(--md-outline);
+  min-height: 0;
+  overflow: visible;
+  box-shadow: none !important;
+  transform: none !important;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.split-button button.split-primary:hover,
+.split-button button.split-arrow:hover {
+  background: rgba(76, 175, 80, 0.12) !important;
+  color: #4caf50;
+}
+
+.split-button button.split-primary::before,
+.split-button button.split-arrow::before {
+  display: none;
+}
+
+.split-primary {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 4px 0 0 4px;
+  border-right: none;
+}
+
+.split-arrow {
+  padding: 0 10px;
+  font-size: 10px;
+  border-radius: 0 4px 4px 0;
+  display: flex;
+  align-items: center;
+}
+
+.split-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px var(--md-shadow-2);
+  z-index: 100;
+  min-width: 120px;
+  overflow: hidden;
+}
+
+.split-dropdown button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 14px;
+  font-size: 13px;
   background: none;
   border: none;
   border-radius: 0;
-  color: var(--md-on-surface-variant);
-  font-size: 13px;
-  padding: 0;
+  color: var(--md-on-surface);
   cursor: pointer;
-  box-shadow: none;
-  outline: none;
 }
 
-.header-actions button:hover {
-  color: var(--md-primary);
-  background: none;
-  box-shadow: none;
+.split-dropdown button:hover {
+  background: var(--md-surface-variant);
 }
 
-.header-actions button::before {
+.split-dropdown button::before {
   display: none;
 }
 
@@ -162,7 +235,7 @@ section {
 }
 
 /* First row after heading should have less top margin */
-h3+.row {
+h3 + .row {
   margin-top: 8px;
 }
 
@@ -176,15 +249,12 @@ h3+.row {
   padding-left: 0;
 }
 
-
-
 /* Special handling for rows without value inputs */
-.row.customs:has(input[style*="display: none"]) {
+.row.customs:has(input[style*='display: none']) {
   grid-template-columns: 180px auto 0;
 }
 
-
-.row.customs:has(input[style*="display: none"]) .customValue {
+.row.customs:has(input[style*='display: none']) .customValue {
   width: 0;
   padding: 0;
   border: none;
@@ -271,8 +341,8 @@ label em {
 }
 
 /* Material Design text inputs */
-input[type="text"],
-input[type="number"] {
+input[type='text'],
+input[type='number'] {
   padding: 8px 12px;
   border: 1px solid var(--md-outline);
   border-radius: 4px;
@@ -299,13 +369,13 @@ input[type="number"] {
   width: 60px;
 }
 
-input[type="text"]:hover,
-input[type="number"]:hover {
+input[type='text']:hover,
+input[type='number']:hover {
   border-color: var(--md-on-surface);
 }
 
-input[type="text"]:focus,
-input[type="number"]:focus {
+input[type='text']:focus,
+input[type='number']:focus {
   outline: none;
   border-color: var(--md-primary);
   box-shadow: 0 0 0 1px var(--md-primary);
@@ -322,7 +392,7 @@ input:disabled {
   background-color: var(--md-surface-variant);
 }
 
-input[type="checkbox"] {
+input[type='checkbox'] {
   width: 20px;
   height: 20px;
   cursor: pointer;
@@ -499,11 +569,9 @@ button:focus-visible {
   font-size: 14px;
 }
 
-/* Button group layout */
+/* Button group layout (legacy — kept for status bar spacing) */
 .button-group {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: none;
   margin-top: 24px;
   gap: 16px;
 }
@@ -654,12 +722,22 @@ button:focus-visible {
   display: none;
 }
 
-#controllerCSS.css-error { border-color: #d32f2f; }
-#controllerCSS.css-warn { border-color: #f57c00; }
+#controllerCSS.css-error {
+  border-color: #d32f2f;
+}
+#controllerCSS.css-warn {
+  border-color: #f57c00;
+}
 
-.css-validation { font-size: 12px; }
-.css-validation.error { color: #d32f2f; }
-.css-validation.warn { color: #f57c00; }
+.css-validation {
+  font-size: 12px;
+}
+.css-validation.error {
+  color: #d32f2f;
+}
+.css-validation.warn {
+  color: #f57c00;
+}
 
 /* FAQ section */
 #faq {
@@ -704,7 +782,7 @@ button:focus-visible {
     padding-left: 0;
   }
 
-  .row.customs>* {
+  .row.customs > * {
     margin-bottom: 8px;
   }
 
@@ -713,7 +791,7 @@ button:focus-visible {
   }
 
   select,
-  input[type="text"] {
+  input[type='text'] {
     width: 100%;
   }
 
@@ -770,7 +848,9 @@ button::before {
   background-color: currentColor;
   opacity: 0.1;
   transform: translate(-50%, -50%);
-  transition: width 0.6s, height 0.6s;
+  transition:
+    width 0.6s,
+    height 0.6s;
 }
 
 button:active::before {
