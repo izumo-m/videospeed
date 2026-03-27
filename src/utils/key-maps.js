@@ -11,15 +11,15 @@
  * these are the exact physical keys the extension has always used.
  */
 export const PREDEFINED_CODE_MAP = Object.freeze({
-  83: { code: 'KeyS',  displayKey: 's' },   // slower
-  68: { code: 'KeyD',  displayKey: 'd' },   // faster
-  90: { code: 'KeyZ',  displayKey: 'z' },   // rewind
-  88: { code: 'KeyX',  displayKey: 'x' },   // advance
-  82: { code: 'KeyR',  displayKey: 'r' },   // reset
-  71: { code: 'KeyG',  displayKey: 'g' },   // fast
-  86: { code: 'KeyV',  displayKey: 'v' },   // display
-  77: { code: 'KeyM',  displayKey: 'm' },   // mark
-  74: { code: 'KeyJ',  displayKey: 'j' },   // jump
+  83: { code: 'KeyS', displayKey: 's' }, // slower
+  68: { code: 'KeyD', displayKey: 'd' }, // faster
+  90: { code: 'KeyZ', displayKey: 'z' }, // rewind
+  88: { code: 'KeyX', displayKey: 'x' }, // advance
+  82: { code: 'KeyR', displayKey: 'r' }, // reset
+  71: { code: 'KeyG', displayKey: 'g' }, // fast
+  86: { code: 'KeyV', displayKey: 'v' }, // display
+  77: { code: 'KeyM', displayKey: 'm' }, // mark
+  74: { code: 'KeyJ', displayKey: 'j' }, // jump
 });
 
 /**
@@ -33,63 +33,63 @@ export const PREDEFINED_CODE_MAP = Object.freeze({
  */
 export const KEYCODE_TO_CODE = Object.freeze({
   // Control keys
-  8:   'Backspace',
-  13:  'Enter',       // NumpadEnter also produces 13 — we pick main Enter
-  27:  'Escape',
-  32:  'Space',
-  46:  'Delete',
+  8: 'Backspace',
+  13: 'Enter', // NumpadEnter also produces 13 — we pick main Enter
+  27: 'Escape',
+  32: 'Space',
+  46: 'Delete',
 
   // Arrow keys
-  37:  'ArrowLeft',
-  38:  'ArrowUp',
-  39:  'ArrowRight',
-  40:  'ArrowDown',
+  37: 'ArrowLeft',
+  38: 'ArrowUp',
+  39: 'ArrowRight',
+  40: 'ArrowDown',
 
   // Digit row (top)
-  48:  'Digit0',
-  49:  'Digit1',
-  50:  'Digit2',
-  51:  'Digit3',
-  52:  'Digit4',
-  53:  'Digit5',
-  54:  'Digit6',
-  55:  'Digit7',
-  56:  'Digit8',
-  57:  'Digit9',
+  48: 'Digit0',
+  49: 'Digit1',
+  50: 'Digit2',
+  51: 'Digit3',
+  52: 'Digit4',
+  53: 'Digit5',
+  54: 'Digit6',
+  55: 'Digit7',
+  56: 'Digit8',
+  57: 'Digit9',
 
   // Letter keys
-  65:  'KeyA',
-  66:  'KeyB',
-  67:  'KeyC',
-  68:  'KeyD',
-  69:  'KeyE',
-  70:  'KeyF',
-  71:  'KeyG',
-  72:  'KeyH',
-  73:  'KeyI',
-  74:  'KeyJ',
-  75:  'KeyK',
-  76:  'KeyL',
-  77:  'KeyM',
-  78:  'KeyN',
-  79:  'KeyO',
-  80:  'KeyP',
-  81:  'KeyQ',
-  82:  'KeyR',
-  83:  'KeyS',
-  84:  'KeyT',
-  85:  'KeyU',
-  86:  'KeyV',
-  87:  'KeyW',
-  88:  'KeyX',
-  89:  'KeyY',
-  90:  'KeyZ',
+  65: 'KeyA',
+  66: 'KeyB',
+  67: 'KeyC',
+  68: 'KeyD',
+  69: 'KeyE',
+  70: 'KeyF',
+  71: 'KeyG',
+  72: 'KeyH',
+  73: 'KeyI',
+  74: 'KeyJ',
+  75: 'KeyK',
+  76: 'KeyL',
+  77: 'KeyM',
+  78: 'KeyN',
+  79: 'KeyO',
+  80: 'KeyP',
+  81: 'KeyQ',
+  82: 'KeyR',
+  83: 'KeyS',
+  84: 'KeyT',
+  85: 'KeyU',
+  86: 'KeyV',
+  87: 'KeyW',
+  88: 'KeyX',
+  89: 'KeyY',
+  90: 'KeyZ',
 
   // Numpad
-  96:  'Numpad0',
-  97:  'Numpad1',
-  98:  'Numpad2',
-  99:  'Numpad3',
+  96: 'Numpad0',
+  97: 'Numpad1',
+  98: 'Numpad2',
+  99: 'Numpad3',
   100: 'Numpad4',
   101: 'Numpad5',
   102: 'Numpad6',
@@ -153,7 +153,9 @@ export const KEYCODE_TO_CODE = Object.freeze({
  * @returns {string} Display-friendly label (e.g., "s", "5", "F10")
  */
 export function displayKeyFromCode(code) {
-  if (!code) return '';
+  if (!code) {
+    return '';
+  }
   // Letter keys: "KeyA" → "a"
   if (code.startsWith('Key') && code.length === 4) {
     return code.charAt(3).toLowerCase();
@@ -164,21 +166,36 @@ export function displayKeyFromCode(code) {
   }
   // Numpad digits: "Numpad3" → "Num 3"
   if (/^Numpad\d$/.test(code)) {
-    return 'Num ' + code.charAt(6);
+    return `Num ${code.charAt(6)}`;
   }
   // Numpad operators
   const numpadOps = {
-    NumpadMultiply: 'Num *', NumpadAdd: 'Num +',
-    NumpadSubtract: 'Num -', NumpadDecimal: 'Num .', NumpadDivide: 'Num /',
+    NumpadMultiply: 'Num *',
+    NumpadAdd: 'Num +',
+    NumpadSubtract: 'Num -',
+    NumpadDecimal: 'Num .',
+    NumpadDivide: 'Num /',
   };
-  if (numpadOps[code]) return numpadOps[code];
+  if (numpadOps[code]) {
+    return numpadOps[code];
+  }
   // Punctuation: map code name to the actual character
   const punctuation = {
-    Semicolon: ';', Equal: '=', Comma: ',', Minus: '-', Period: '.',
-    Slash: '/', Backquote: '`', BracketLeft: '[', Backslash: '\\',
-    BracketRight: ']', Quote: "'",
+    Semicolon: ';',
+    Equal: '=',
+    Comma: ',',
+    Minus: '-',
+    Period: '.',
+    Slash: '/',
+    Backquote: '`',
+    BracketLeft: '[',
+    Backslash: '\\',
+    BracketRight: ']',
+    Quote: "'",
   };
-  if (punctuation[code]) return punctuation[code];
+  if (punctuation[code]) {
+    return punctuation[code];
+  }
   // Everything else (Space, Backspace, Enter, Escape, Arrow*, F1-F24, Delete, etc.)
   // is already human-readable as-is
   return code;
@@ -186,7 +203,15 @@ export function displayKeyFromCode(code) {
 
 /** All predefined action names, in display order. */
 export const PREDEFINED_ACTIONS = [
-  'slower', 'faster', 'rewind', 'advance', 'reset', 'fast', 'display', 'mark', 'jump',
+  'slower',
+  'faster',
+  'rewind',
+  'advance',
+  'reset',
+  'fast',
+  'display',
+  'mark',
+  'jump',
 ];
 
 /**
@@ -195,24 +220,28 @@ export const PREDEFINED_ACTIONS = [
  * migration Phase 4 (background.js), and restore_defaults (options.js).
  */
 export const DEFAULT_BINDINGS = Object.freeze({
-  slower:  { code: 'KeyS', key: 83, keyCode: 83, displayKey: 's', value: 0.1 },
-  faster:  { code: 'KeyD', key: 68, keyCode: 68, displayKey: 'd', value: 0.1 },
-  rewind:  { code: 'KeyZ', key: 90, keyCode: 90, displayKey: 'z', value: 10  },
-  advance: { code: 'KeyX', key: 88, keyCode: 88, displayKey: 'x', value: 10  },
-  reset:   { code: 'KeyR', key: 82, keyCode: 82, displayKey: 'r', value: 1.0 },
-  fast:    { code: 'KeyG', key: 71, keyCode: 71, displayKey: 'g', value: 1.8 },
-  display: { code: 'KeyV', key: 86, keyCode: 86, displayKey: 'v', value: 0   },
-  mark:    { code: 'KeyM', key: 77, keyCode: 77, displayKey: 'm', value: 0   },
-  jump:    { code: 'KeyJ', key: 74, keyCode: 74, displayKey: 'j', value: 0   },
+  slower: { code: 'KeyS', key: 83, keyCode: 83, displayKey: 's', value: 0.1 },
+  faster: { code: 'KeyD', key: 68, keyCode: 68, displayKey: 'd', value: 0.1 },
+  rewind: { code: 'KeyZ', key: 90, keyCode: 90, displayKey: 'z', value: 10 },
+  advance: { code: 'KeyX', key: 88, keyCode: 88, displayKey: 'x', value: 10 },
+  reset: { code: 'KeyR', key: 82, keyCode: 82, displayKey: 'r', value: 1.0 },
+  fast: { code: 'KeyG', key: 71, keyCode: 71, displayKey: 'g', value: 1.8 },
+  display: { code: 'KeyV', key: 86, keyCode: 86, displayKey: 'v', value: 0 },
+  mark: { code: 'KeyM', key: 77, keyCode: 77, displayKey: 'm', value: 0 },
+  jump: { code: 'KeyJ', key: 74, keyCode: 74, displayKey: 'j', value: 0 },
 });
 
 /** event.code values that must not be recorded as shortcuts. */
 export const BLACKLISTED_CODES = new Set([
   'Tab',
-  'ShiftLeft', 'ShiftRight',
-  'ControlLeft', 'ControlRight',
-  'AltLeft', 'AltRight',
-  'MetaLeft', 'MetaRight',
+  'ShiftLeft',
+  'ShiftRight',
+  'ControlLeft',
+  'ControlRight',
+  'AltLeft',
+  'AltRight',
+  'MetaLeft',
+  'MetaRight',
   'ContextMenu',
   'CapsLock',
   'NumLock',

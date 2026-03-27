@@ -36,8 +36,15 @@
   "overrides": [
     {
       "files": ["tests/**/*.js"],
-      "env": {
-        "jest": true
+      "globals": {
+        "describe": "readonly",
+        "it": "readonly",
+        "expect": "readonly",
+        "beforeEach": "readonly",
+        "afterEach": "readonly",
+        "beforeAll": "readonly",
+        "afterAll": "readonly",
+        "vi": "readonly"
       },
       "rules": {
         "no-unused-expressions": "off"

@@ -22,18 +22,24 @@ const escapeRegExp = (str) => str.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
  */
 function compilePattern(raw) {
   const pattern = raw.replace(regStrip, '');
-  if (pattern.length === 0) return null;
+  if (pattern.length === 0) {
+    return null;
+  }
 
   if (pattern.startsWith('/')) {
     try {
       const parts = pattern.split('/');
-      if (parts.length < 3) return null;
+      if (parts.length < 3) {
+        return null;
+      }
 
       const hasFlags = regEndsWithFlags.test(pattern);
       const flags = hasFlags ? parts.pop() : '';
       const regex = parts.slice(1, hasFlags ? undefined : -1).join('/');
 
-      if (!regex) return null;
+      if (!regex) {
+        return null;
+      }
       return new RegExp(regex, flags);
     } catch (err) {
       return null;
@@ -58,7 +64,9 @@ function compilePattern(raw) {
  * @returns {Object|null} First matching rule, or null
  */
 export function matchSiteRule(rules, href) {
-  if (!rules || !rules.length) return null;
+  if (!rules || !rules.length) {
+    return null;
+  }
 
   for (const rule of rules) {
     const regexp = compilePattern(rule.pattern || '');
@@ -78,11 +86,14 @@ export function matchSiteRule(rules, href) {
  * @returns {boolean} true if any pattern matches
  */
 export function isBlacklisted(blacklist, href) {
-  if (!blacklist) return false;
+  if (!blacklist) {
+    return false;
+  }
 
-  const rules = blacklist.split('\n')
-    .map(line => ({ pattern: line.replace(regStrip, '') }))
-    .filter(r => r.pattern.length > 0);
+  const rules = blacklist
+    .split('\n')
+    .map((line) => ({ pattern: line.replace(regStrip, '') }))
+    .filter((r) => r.pattern.length > 0);
 
   return matchSiteRule(rules, href) !== null;
 }

@@ -51,7 +51,11 @@ export const chromeMock = {
           }
         }, 5);
 
-        setTimeout(() => callback && callback(), 10);
+        setTimeout(() => {
+          if (globalThis.chrome && callback) {
+            callback();
+          }
+        }, 10);
       },
       remove: (keys, callback) => {
         const keysArray = Array.isArray(keys) ? keys : [keys];
@@ -69,7 +73,9 @@ export const chromeMock = {
       },
       removeListener: (callback) => {
         const idx = onChangedListeners.indexOf(callback);
-        if (idx !== -1) onChangedListeners.splice(idx, 1);
+        if (idx !== -1) {
+          onChangedListeners.splice(idx, 1);
+        }
       },
     },
   },
@@ -128,7 +134,7 @@ export function resetMockStorage() {
     lastSpeed: 1.0,
     keyBindings: [],
     rememberSpeed: false,
-  
+
     audioBoolean: false,
     startHidden: false,
     controllerOpacity: 0.3,

@@ -62,12 +62,3 @@ export async function loadMinimalModules() {
   await import('../../src/core/storage-manager.js');
   await import('../../src/core/settings.js');
 }
-
-/**
- * Load observer modules for observer tests
- */
-export async function loadObserverModules() {
-  await import('../../src/utils/logger.js');
-  await import('../../src/utils/dom-utils.js');
-  await import('../../src/observers/mutation-observer.js');
-}

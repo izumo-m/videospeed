@@ -63,9 +63,9 @@ class VideoSpeedExtension {
   }
 
   /**
- * Initialize for a specific document
- * @param {Document} document - Document to initialize
- */
+   * Initialize for a specific document
+   * @param {Document} document - Document to initialize
+   */
   initializeDocument(document) {
     try {
       if (window.VSC.initialized) {
@@ -184,10 +184,10 @@ class VideoSpeedExtension {
   }
 
   /**
- * Apply domain-specific styles using CSS custom properties
- * Sets CSS custom property on :root to enable CSS-based domain targeting
- * @param {Document} document - Document to apply styles to
- */
+   * Apply domain-specific styles using CSS custom properties
+   * Sets CSS custom property on :root to enable CSS-based domain targeting
+   * @param {Document} document - Document to apply styles to
+   */
   applyDomainStyles(document) {
     try {
       // Strip www. prefix so CSS selectors only need the bare domain.
@@ -208,8 +208,7 @@ class VideoSpeedExtension {
    */
   injectControllerCSS(doc) {
     try {
-      const css = this.config.settings.controllerCSS ??
-        window.VSC.Constants.DEFAULT_CONTROLLER_CSS;
+      const css = this.config.settings.controllerCSS ?? window.VSC.Constants.DEFAULT_CONTROLLER_CSS;
       const style = doc.createElement('style');
       style.id = 'vsc-controller-css';
       style.textContent = css;
@@ -278,14 +277,18 @@ class VideoSpeedExtension {
    * Counterpart to initialize() — leaves the page as if VSC was never active.
    */
   teardown() {
-    if (!this.initialized) return;
+    if (!this.initialized) {
+      return;
+    }
 
     this.logger.info('Tearing down Video Speed Controller');
 
     // Remove all controllers from tracked media elements
     const videos = window.VSC.stateManager ? window.VSC.stateManager.getAllMediaElements() : [];
     for (const video of videos) {
-      if (video.vsc) video.vsc.remove();
+      if (video.vsc) {
+        video.vsc.remove();
+      }
     }
 
     // Stop observing DOM for new videos
@@ -346,7 +349,6 @@ class VideoSpeedExtension {
 
     this.logger.debug('CSS injected into iframe document');
   }
-
 }
 
 // Initialize extension and message handlers in an IIFE to avoid global scope pollution
@@ -377,7 +379,9 @@ class VideoSpeedExtension {
             });
 
             // Log the successful operation
-            window.VSC.logger?.debug(`Set speed to ${targetSpeed} on ${videos.length} media elements`);
+            window.VSC.logger?.debug(
+              `Set speed to ${targetSpeed} on ${videos.length} media elements`
+            );
           }
           break;
 
@@ -394,7 +398,9 @@ class VideoSpeedExtension {
               }
             });
 
-            window.VSC.logger?.debug(`Adjusted speed by ${delta} on ${videos.length} media elements`);
+            window.VSC.logger?.debug(
+              `Adjusted speed by ${delta} on ${videos.length} media elements`
+            );
           }
           break;
 
@@ -439,5 +445,5 @@ class VideoSpeedExtension {
   });
 
   // Export only what's needed with consistent VSC_ prefix
-  window.VSC_controller = extension;  // The initialized instance
+  window.VSC_controller = extension; // The initialized instance
 })();

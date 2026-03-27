@@ -1,6 +1,6 @@
 /**
  * Action handling system for Video Speed Controller
- * 
+ *
  */
 
 window.VSC = window.VSC || {};
@@ -19,9 +19,9 @@ class ActionHandler {
    */
   runAction(action, value, e) {
     // Use state manager for complete media discovery (includes shadow DOM)
-    const mediaTags = window.VSC.stateManager ?
-      window.VSC.stateManager.getControlledElements() :
-      []; // No fallback - state manager should always be available
+    const mediaTags = window.VSC.stateManager
+      ? window.VSC.stateManager.getControlledElements()
+      : []; // No fallback - state manager should always be available
 
     // Get the controller that was used if called from a button press event
     let targetController = null;
@@ -280,7 +280,11 @@ class ActionHandler {
    * @param {HTMLMediaElement} video - Video element
    */
   jumpToMark(video) {
-    if (video.vsc.mark == null || typeof video.vsc.mark !== 'number') {
+    if (
+      video.vsc.mark === null ||
+      video.vsc.mark === undefined ||
+      typeof video.vsc.mark !== 'number'
+    ) {
       return;
     }
 
@@ -309,7 +313,10 @@ class ActionHandler {
   flashController(controller, duration) {
     // Don't flash when user has explicitly hidden this controller.
     // vsc-manual + vsc-hidden = "user pressed V to hide" — respect that.
-    if (controller.classList.contains('vsc-manual') && controller.classList.contains('vsc-hidden')) {
+    if (
+      controller.classList.contains('vsc-manual') &&
+      controller.classList.contains('vsc-hidden')
+    ) {
       window.VSC.logger.debug('flashController skipped: user manually hid controller');
       return;
     }
@@ -335,14 +342,11 @@ class ActionHandler {
 
     // For audio controllers, don't set timeout to hide again
     if (!isAudioController) {
-      controller.flashTimer = setTimeout(
-        () => {
-          controller.classList.remove('vsc-show');
-          controller.flashTimer = undefined;
-          window.VSC.logger.debug('Removing vsc-show class after flash timeout');
-        },
-        duration || 2000
-      );
+      controller.flashTimer = setTimeout(() => {
+        controller.classList.remove('vsc-show');
+        controller.flashTimer = undefined;
+        window.VSC.logger.debug('Removing vsc-show class after flash timeout');
+      }, duration || 2000);
     } else {
       window.VSC.logger.debug('Audio controller flash - keeping vsc-show class');
     }
@@ -356,8 +360,9 @@ class ActionHandler {
    */
   isAudioController(controller) {
     // Find associated media element using state manager
-    const mediaElements = window.VSC.stateManager ?
-      window.VSC.stateManager.getControlledElements() : [];
+    const mediaElements = window.VSC.stateManager
+      ? window.VSC.stateManager.getControlledElements()
+      : [];
     for (const media of mediaElements) {
       if (media.vsc && media.vsc.div === controller) {
         return media.tagName === 'AUDIO';
@@ -412,7 +417,9 @@ class ActionHandler {
         targetSpeed = 1.0;
       }
 
-      window.VSC.logger.debug(`Relative speed calculation: currentSpeed=${currentSpeed} + ${value} = ${targetSpeed}`);
+      window.VSC.logger.debug(
+        `Relative speed calculation: currentSpeed=${currentSpeed} + ${value} = ${targetSpeed}`
+      );
     } else {
       // For absolute changes, use value directly
       targetSpeed = value;
@@ -473,7 +480,7 @@ class ActionHandler {
         detail: {
           origin: 'videoSpeed',
           speed: speedValue,
-          source: source
+          source: source,
         },
       })
     );
@@ -504,7 +511,6 @@ class ActionHandler {
       this.flashController(video.vsc.div);
     }
   }
-
 }
 
 // Create singleton instance
