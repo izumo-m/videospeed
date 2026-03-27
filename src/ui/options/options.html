@@ -9,144 +9,157 @@
 
 <body>
   <header>
-    <h1>Video Speed Controller</h1>
+    <nav class="header-tabs">
+      <button id="tab-settings" class="header-tab active">Settings</button>
+      <button id="tab-advanced" class="header-tab">Advanced</button>
+    </nav>
+    <nav class="header-actions">
+      <button id="import">Import</button>
+      <button id="export">Export</button>
+      <input type="file" id="importFile" accept=".json" hidden />
+    </nav>
   </header>
 
-  <section id="customs">
-    <h3>Shortcuts</h3>
-    <div class="row customs" id="display">
-      <select class="customDo">
-        <option value="display">Show/hide controller</option>
-      </select>
-      <input class="customKey" type="text" value="" placeholder="press a key" />
-      <input class="customValue" type="text" placeholder="value (0.10)" style="display: none;" />
-    </div>
-    <div class="row customs" id="slower">
-      <select class="customDo">
-        <option value="slower">Decrease speed</option>
-      </select>
-      <input class="customKey" type="text" value="" placeholder="press a key" />
-      <input class="customValue" type="text" placeholder="value (0.10)" />
-    </div>
-    <div class="row customs" id="faster">
-      <select class="customDo">
-        <option value="faster">Increase speed</option>
-      </select>
-      <input class="customKey" type="text" value="" placeholder="press a key" />
-      <input class="customValue" type="text" placeholder="value (0.10)" />
-    </div>
-    <div class="row customs" id="rewind">
-      <select class="customDo">
-        <option value="rewind">Rewind</option>
-      </select>
-      <input class="customKey" type="text" value="" placeholder="press a key" />
-      <input class="customValue" type="text" placeholder="value (10)" />
-    </div>
-    <div class="row customs" id="advance">
-      <select class="customDo">
-        <option value="advance">Advance</option>
-      </select>
-      <input class="customKey" type="text" value="" placeholder="press a key" />
-      <input class="customValue" type="text" placeholder="value (10)" />
-    </div>
-    <div class="row customs" id="reset">
-      <select class="customDo">
-        <option value="reset">Reset speed</option>
-      </select>
-      <input class="customKey" type="text" value="" placeholder="press a key" />
-      <input class="customValue" type="text" placeholder="value (1.00)" />
-    </div>
-    <div class="row customs" id="fast">
-      <select class="customDo">
-        <option value="fast">Preferred speed</option>
-      </select>
-      <input class="customKey" type="text" value="" placeholder="press a key" />
-      <input class="customValue" type="text" placeholder="value (1.80)" />
-    </div>
-    <div class="row customs" id="mark">
-      <select class="customDo">
-        <option value="mark">Set marker</option>
-      </select>
-      <input class="customKey" type="text" value="" placeholder="press a key" />
-      <input class="customValue" type="text" placeholder="value (0)" style="display: none;" />
-    </div>
-    <div class="row customs" id="jump">
-      <select class="customDo">
-        <option value="jump">Jump to marker</option>
-      </select>
-      <input class="customKey" type="text" value="" placeholder="press a key" />
-      <input class="customValue" type="text" placeholder="value (0)" style="display: none;" />
-    </div>
+  <!-- ============ SETTINGS TAB ============ -->
+  <div id="panel-settings">
+    <section id="customs">
+      <h3>Shortcuts</h3>
+      <div class="row customs" id="display">
+        <select class="customDo">
+          <option value="display">Show/hide controller</option>
+        </select>
+        <input class="customKey" type="text" value="" placeholder="press a key" />
+        <input class="customValue" type="text" placeholder="value (0.10)" style="display: none;" />
+      </div>
+      <div class="row customs" id="slower">
+        <select class="customDo">
+          <option value="slower">Decrease speed</option>
+        </select>
+        <input class="customKey" type="text" value="" placeholder="press a key" />
+        <input class="customValue" type="text" placeholder="value (0.10)" />
+      </div>
+      <div class="row customs" id="faster">
+        <select class="customDo">
+          <option value="faster">Increase speed</option>
+        </select>
+        <input class="customKey" type="text" value="" placeholder="press a key" />
+        <input class="customValue" type="text" placeholder="value (0.10)" />
+      </div>
+      <div class="row customs" id="rewind">
+        <select class="customDo">
+          <option value="rewind">Rewind</option>
+        </select>
+        <input class="customKey" type="text" value="" placeholder="press a key" />
+        <input class="customValue" type="text" placeholder="value (10)" />
+      </div>
+      <div class="row customs" id="advance">
+        <select class="customDo">
+          <option value="advance">Advance</option>
+        </select>
+        <input class="customKey" type="text" value="" placeholder="press a key" />
+        <input class="customValue" type="text" placeholder="value (10)" />
+      </div>
+      <div class="row customs" id="reset">
+        <select class="customDo">
+          <option value="reset">Reset speed</option>
+        </select>
+        <input class="customKey" type="text" value="" placeholder="press a key" />
+        <input class="customValue" type="text" placeholder="value (1.00)" />
+      </div>
+      <div class="row customs" id="fast">
+        <select class="customDo">
+          <option value="fast">Preferred speed</option>
+        </select>
+        <input class="customKey" type="text" value="" placeholder="press a key" />
+        <input class="customValue" type="text" placeholder="value (1.80)" />
+      </div>
+      <div class="row customs" id="mark">
+        <select class="customDo">
+          <option value="mark">Set marker</option>
+        </select>
+        <input class="customKey" type="text" value="" placeholder="press a key" />
+        <input class="customValue" type="text" placeholder="value (0)" style="display: none;" />
+      </div>
+      <div class="row customs" id="jump">
+        <select class="customDo">
+          <option value="jump">Jump to marker</option>
+        </select>
+        <input class="customKey" type="text" value="" placeholder="press a key" />
+        <input class="customValue" type="text" placeholder="value (0)" style="display: none;" />
+      </div>
 
-    <button id="add">Add New</button>
-  </section>
+      <button id="add">Add New</button>
+    </section>
 
-  <section>
-    <h3>Other</h3>
-    <div class="row">
-      <label for="audioBoolean">Audio support</label>
-      <input id="audioBoolean" type="checkbox" />
-    </div>
-    <div class="row">
-      <label for="rememberSpeed">Remember playback speed</label>
-      <input id="rememberSpeed" type="checkbox" />
-    </div>
-    <div class="row">
-      <label for="startHidden">Hide controller by default</label>
-      <input id="startHidden" type="checkbox" />
-    </div>
-    <div class="row advanced-feature">
-      <label for="exclusiveKeys">Exclusive keyboard shortcuts<br />
-        <em>When possible, prevent websites from also handling VSC shortcut keys.</em></label>
-      <input id="exclusiveKeys" type="checkbox" />
-    </div>
-    <div class="row advanced-feature">
-      <label for="controllerOpacity">Controller opacity</label>
-      <input id="controllerOpacity" type="text" value="" />
-    </div>
-    <div class="row advanced-feature">
-      <label for="controllerButtonSize">Controller Button Size</label>
-      <input id="controllerButtonSize" type="text" value="" />
-    </div>
-    <div class="row advanced-feature">
-      <label for="logLevel">Console Log Level<br />
-        <em>Set verbosity in the browser console</em></label>
-      <select id="logLevel">
-        <option value="1">None</option>
-        <option value="2">Error</option>
-        <option value="3">Warning</option>
-        <option value="4">Info</option>
-        <option value="5">Debug</option>
-        <option value="6">Verbose</option>
-      </select>
-    </div>
-    <div class="row advanced-feature">
-      <label for="controllerCSS">Controller CSS<br />
-        <em>Customize controller positioning per site. <a href="#" id="resetCSS">Reset to defaults</a>.</em>
-      </label>
-      <textarea id="controllerCSS" rows="20" cols="60"></textarea>
-      <div id="cssValidation" class="css-validation"></div>
-    </div>
-    <div class="row advanced-feature">
-      <label for="blacklist">Disable on sites<br />
-        <em>One host or <a href="https://www.regexpal.com/">Regex</a> per line. Use the literal notation, e.g.
-          <code>/(.+)youtube\.com(\/*)$/gi</code></em>
-      </label>
-      <textarea id="blacklist" rows="10" cols="50"></textarea>
-      </label>
-  </section>
+    <section>
+      <h3>Preferences</h3>
+      <div class="row">
+        <label for="audioBoolean">Audio support<br />
+          <em>Show speed controls on audio elements.</em></label>
+        <input id="audioBoolean" type="checkbox" />
+      </div>
+      <div class="row">
+        <label for="rememberSpeed">Remember playback speed<br />
+          <em>Store and auto-apply the last used speed to all new videos.</em></label>
+        <input id="rememberSpeed" type="checkbox" />
+      </div>
+      <div class="row">
+        <label for="startHidden">Hide controller by default<br />
+          <em>Controller stays hidden until toggled via shortcut.</em></label>
+        <input id="startHidden" type="checkbox" />
+      </div>
+      <div class="row">
+        <label for="exclusiveKeys">Exclusive keyboard shortcuts<br />
+          <em>When possible, prevent websites from also handling VSC shortcut keys.</em></label>
+        <input id="exclusiveKeys" type="checkbox" />
+      </div>
+    </section>
+  </div>
 
+  <!-- ============ ADVANCED TAB ============ -->
+  <div id="panel-advanced" style="display: none;">
+    <section>
+      <div class="row">
+        <label for="controllerOpacity">Controller opacity</label>
+        <input id="controllerOpacity" type="text" value="" />
+      </div>
+      <div class="row">
+        <label for="controllerButtonSize">Controller Button Size</label>
+        <input id="controllerButtonSize" type="text" value="" />
+      </div>
+      <div class="row">
+        <label for="logLevel">Console Log Level<br />
+          <em>Set verbosity in the browser console</em></label>
+        <select id="logLevel">
+          <option value="1">None</option>
+          <option value="2">Error</option>
+          <option value="3">Warning</option>
+          <option value="4">Info</option>
+          <option value="5">Debug</option>
+          <option value="6">Verbose</option>
+        </select>
+      </div>
+      <div class="row">
+        <label for="controllerCSS">Controller CSS<br />
+          <em>Customize controller positioning per site. <a href="#" id="resetCSS">Reset to defaults</a>.</em>
+        </label>
+        <textarea id="controllerCSS" rows="20" cols="60"></textarea>
+        <div id="cssValidation" class="css-validation"></div>
+      </div>
+      <div class="row">
+        <label for="blacklist">Disable on sites<br />
+          <em>One host or <a href="https://www.regexpal.com/">Regex</a> per line. Use the literal notation, e.g.
+            <code>/(.+)youtube\.com(\/*)$/gi</code></em>
+        </label>
+        <textarea id="blacklist" rows="10" cols="50"></textarea>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ SHARED (always visible) ============ -->
   <div class="button-group">
-    <div class="primary-buttons">
-      <button id="save">Save</button>
-      <button id="experimental">Show advanced features</button>
-    </div>
-    <div class="secondary-buttons">
-      <button id="export" class="secondary">Export</button>
-      <button id="import" class="secondary">Import</button>
-      <input type="file" id="importFile" accept=".json" hidden />
-      <button id="restore">Restore defaults</button>
-    </div>
+    <button id="save">Save</button>
+    <button id="restore">Restore defaults</button>
   </div>
 
   <div id="status"></div>

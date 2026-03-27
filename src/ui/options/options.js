@@ -771,22 +771,11 @@ async function handleImportFile(event) {
   }
 }
 
-function toggle_experimental() {
-  const button = document.getElementById("experimental");
-  const advancedRows = document.querySelectorAll('.row.advanced-feature');
-  const isVisible = advancedRows.length > 0 && advancedRows[0].classList.contains('show');
-
-  if (isVisible) {
-    // Hide advanced features
-    advancedRows.forEach((row) => row.classList.remove('show'));
-    button.textContent = "Show advanced features";
-    return;
-  }
-
-  // Show advanced feature rows
-  advancedRows.forEach((row) => row.classList.add('show'));
-
-  button.textContent = "Hide advanced features";
+function switchTab(tabName) {
+  document.getElementById('tab-settings').classList.toggle('active', tabName === 'settings');
+  document.getElementById('tab-advanced').classList.toggle('active', tabName === 'advanced');
+  document.getElementById('panel-settings').style.display = tabName === 'settings' ? '' : 'none';
+  document.getElementById('panel-advanced').style.display = tabName === 'advanced' ? '' : 'none';
 }
 
 // Create debounced save function to prevent rapid saves
@@ -830,7 +819,8 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   document.getElementById("importFile").addEventListener("change", handleImportFile);
 
-  document.getElementById("experimental").addEventListener("click", toggle_experimental);
+  document.getElementById("tab-settings").addEventListener("click", () => switchTab('settings'));
+  document.getElementById("tab-advanced").addEventListener("click", () => switchTab('advanced'));
 
   // Live CSS validation as user types (debounced)
   var cssValidationTimer;

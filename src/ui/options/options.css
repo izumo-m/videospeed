@@ -73,17 +73,73 @@ body {
 
 header {
   margin: 0 -20px 24px;
-  padding: 20px 40px;
+  padding: 0 40px;
   background: var(--md-surface-container);
   border-bottom: 1px solid var(--md-outline-variant);
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
 }
 
-h1 {
-  font-size: 28px;
-  font-weight: 400;
-  line-height: 1.2;
-  margin: 0;
+.header-tabs {
+  display: flex;
+  gap: 0;
+}
+
+.header-tab {
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  color: var(--md-on-surface-variant);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 16px 20px;
+  margin-bottom: -1px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  outline: none;
+}
+
+.header-tab:hover {
   color: var(--md-on-surface);
+}
+
+.header-tab:focus-visible {
+  color: var(--md-on-surface);
+}
+
+.header-tab.active {
+  color: var(--md-primary);
+  border-bottom-color: var(--md-primary);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-actions button {
+  background: none;
+  border: none;
+  border-radius: 0;
+  color: var(--md-on-surface-variant);
+  font-size: 13px;
+  padding: 0;
+  cursor: pointer;
+  box-shadow: none;
+  outline: none;
+}
+
+.header-actions button:hover {
+  color: var(--md-primary);
+  background: none;
+  box-shadow: none;
+}
+
+.header-actions button::before {
+  display: none;
 }
 
 h3 {
@@ -99,7 +155,7 @@ section {
 
 /* Material Design form elements */
 .row {
-  margin: 16px 0;
+  margin: 20px 0;
   display: flex;
   align-items: flex-start;
   gap: 16px;
@@ -114,10 +170,10 @@ h3+.row {
   gap: 8px;
   align-items: center;
   display: grid;
-  grid-template-columns: 180px auto 75px;
+  grid-template-columns: 180px auto 75px auto;
   justify-content: start;
-  position: relative;
-  padding-left: 44px;
+  margin: 10px 0;
+  padding-left: 0;
 }
 
 
@@ -135,12 +191,8 @@ h3+.row {
   margin: 0;
 }
 
-/* Remove button styling - positioned absolutely on the left */
+/* Remove button styling */
 .removeParent {
-  position: absolute;
-  left: 4px;
-  top: 50%;
-  transform: translateY(-50%);
   width: 32px;
   min-width: 32px;
   height: 32px;
@@ -180,7 +232,6 @@ select:disabled:hover {
   background-color: #ffebee;
   color: #d32f2f;
   border-color: #d32f2f;
-  transform: translateY(-50%) scale(1.05);
   box-shadow: 0 2px 4px var(--md-shadow);
 }
 
@@ -193,7 +244,6 @@ select:disabled:hover {
 }
 
 .removeParent:active {
-  transform: translateY(-50%) scale(0.95);
   box-shadow: 0 1px 2px var(--md-shadow);
 }
 
@@ -204,7 +254,7 @@ select:disabled:hover {
 
 /* Improved label styling with context */
 label {
-  flex: 0 0 280px;
+  flex: 1;
   font-size: 14px;
   line-height: 1.5;
   color: var(--md-on-surface);
@@ -443,7 +493,7 @@ button:focus-visible {
 
 #add {
   margin-top: 16px;
-  margin-left: 44px;
+  margin-left: 0;
   padding: 0 16px;
   min-height: 36px;
   font-size: 14px;
@@ -591,61 +641,6 @@ button:focus-visible {
   color: var(--md-primary);
 }
 
-/* Advanced features - hidden by default */
-.row.advanced-feature {
-  visibility: hidden;
-  opacity: 0;
-  margin: 0;
-  padding: 0;
-  height: 0;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.row.advanced-feature.show {
-  visibility: visible;
-  opacity: 1;
-  height: auto;
-  display: flex;
-  margin: 16px 0;
-  align-items: flex-start;
-  gap: 16px;
-}
-
-/* Advanced feature inputs and selects */
-.row.advanced-feature.show input[type="text"],
-.row.advanced-feature.show select,
-.row.advanced-feature.show textarea {
-  background-color: rgba(255, 235, 59, 0.1);
-  border-color: rgba(255, 193, 7, 0.8);
-  box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.2);
-}
-
-.row.advanced-feature.show input[type="text"]:hover,
-.row.advanced-feature.show select:hover,
-.row.advanced-feature.show textarea:hover {
-  border-color: rgba(255, 193, 7, 1);
-  box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.3);
-}
-
-.row.advanced-feature.show input[type="text"]:focus,
-.row.advanced-feature.show select:focus,
-.row.advanced-feature.show textarea:focus {
-  border-color: rgba(255, 152, 0, 1);
-  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.3);
-}
-
-@media (prefers-color-scheme: dark) {
-
-  .row.advanced-feature.show input[type="text"],
-  .row.advanced-feature.show select,
-  .row.advanced-feature.show textarea {
-    background-color: rgba(255, 235, 59, 0.08);
-    border-color: rgba(255, 193, 7, 0.6);
-    box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.15);
-  }
-}
-
 /* Responsive adjustments */
 @media (max-width: 640px) {
   .row {
@@ -656,7 +651,7 @@ button:focus-visible {
   .row.customs {
     display: flex;
     flex-wrap: wrap;
-    padding-left: 44px;
+    padding-left: 0;
   }
 
   .row.customs>* {
