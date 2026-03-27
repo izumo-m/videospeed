@@ -70,18 +70,34 @@ class VideoController {
   /**
    * Get target speed for video initialization and event restoration.
    *
-   * Always uses in-memory lastSpeed when available — this provides session
-   * persistence (speed survives play/pause/seek events within the same page).
-   * The rememberSpeed setting controls cross-session STORAGE persistence only,
-   * not in-memory behavior.
+   * Speed resolution (see plan.md for full state machine):
+   *   1. baseline = siteDefaultSpeed ?? 1.0   (per-site, replaces hardcoded 1.0)
+   *   2. lastSpeed wins if user has changed it (in-memory, always authoritative)
+   *   3. rememberSpeed only controls cross-session STORAGE persistence
+   *
+   * On fresh page load with rememberSpeed OFF: lastSpeed=1.0 (default) → baseline wins
+   * On fresh page load with rememberSpeed ON:  lastSpeed=stored value → lastSpeed wins
+   * During session after user changes speed:   lastSpeed=user value → lastSpeed wins
    *
    * @returns {number} Target speed
    * @private
    */
   getTargetSpeed() {
-    const targetSpeed = this.config.settings.lastSpeed || 1.0;
-    window.VSC.logger.debug(`Using lastSpeed ${targetSpeed} (rememberSpeed=${this.config.settings.rememberSpeed})`);
-    return targetSpeed;
+    // Layer 1: per-site baseline (replaces the hardcoded 1.0)
+    const baseline = this.config.settings.siteDefaultSpeed ?? 1.0;
+
+    // Layer 2: in-memory lastSpeed — always authoritative when user has changed it.
+    // lastSpeed is updated by setSpeed() on every user action. It reflects the
+    // current session intent regardless of rememberSpeed (which only controls
+    // cross-session STORAGE persistence, not in-memory behavior).
+    const last = this.config.settings.lastSpeed;
+    if (last && last !== 1.0) {
+      window.VSC.logger.debug(`Using lastSpeed ${last} (baseline=${baseline})`);
+      return last;
+    }
+
+    window.VSC.logger.debug(`Using baseline ${baseline} (lastSpeed=${last})`);
+    return baseline;
   }
 
   /**

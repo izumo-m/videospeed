@@ -39,6 +39,13 @@ if (!window.VSC.Constants.DEFAULT_SETTINGS) {
     keyBindings: PREDEFINED_ACTIONS.map(action => ({
       action, ...DEFAULT_BINDINGS[action], predefined: true,
     })),
+    siteRules: [
+      { pattern: 'www.instagram.com', enabled: false, speed: null },
+      { pattern: 'x.com',             enabled: false, speed: null },
+      { pattern: 'imgur.com',         enabled: false, speed: null },
+      { pattern: 'teams.microsoft.com', enabled: false, speed: null },
+      { pattern: 'meet.google.com',   enabled: false, speed: null },
+    ],
     blacklist: `www.instagram.com
 x.com
 imgur.com

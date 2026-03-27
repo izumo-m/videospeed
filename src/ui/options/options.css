@@ -565,14 +565,64 @@ button:focus-visible {
   }
 }
 
-/* Special row for blacklist textarea */
-.row:has(#blacklist) {
+/* Site rules table */
+.row:has(#site-rules-container) {
   flex-direction: column;
   gap: 8px;
 }
 
-.row:has(#blacklist) label {
+.row:has(#site-rules-container) label {
   flex: none;
+}
+
+.site-rules-header {
+  display: grid;
+  grid-template-columns: 1fr 50px 80px 32px;
+  gap: 8px;
+  padding-left: 44px;
+  padding-bottom: 4px;
+  font-size: 12px;
+  color: var(--md-on-surface-variant);
+  font-weight: 500;
+  border-bottom: 1px solid var(--md-outline-variant);
+  margin-bottom: 4px;
+}
+
+.site-rules-header span:nth-child(2),
+.site-rules-header span:nth-child(3) {
+  text-align: center;
+}
+
+.row.site-rule {
+  display: grid;
+  grid-template-columns: 1fr 50px 80px 32px;
+  gap: 8px;
+  align-items: center;
+  padding-left: 44px;
+  position: relative;
+  margin: 4px 0;
+}
+
+.row.site-rule .rulePattern {
+  width: 100%;
+  text-align: left;
+}
+
+.row.site-rule .ruleEnabled {
+  justify-self: center;
+}
+
+.row.site-rule .ruleSpeed {
+  width: 80px;
+  text-align: center;
+}
+
+#add-site-rule {
+  margin-top: 8px;
+  margin-left: 44px;
+  padding: 0 16px;
+  min-height: 36px;
+  font-size: 14px;
 }
 
 /* Controller CSS textarea */
@@ -671,6 +721,19 @@ button:focus-visible {
     width: 100%;
   }
 
+  .site-rules-header {
+    grid-template-columns: 1fr 50px 70px 32px;
+    padding-left: 44px;
+    font-size: 11px;
+  }
+
+  .row.site-rule {
+    grid-template-columns: 1fr 50px 70px 32px;
+  }
+
+  .row.site-rule .ruleSpeed {
+    width: 70px;
+  }
 
   .button-group {
     flex-direction: column;

@@ -84,6 +84,25 @@ if (!window.VSC.VideoSpeedConfig) {
           await this.save({ keyBindings: this.settings.keyBindings });
         }
 
+        // Migrate legacy blacklist → siteRules (one-shot)
+        if (storage.blacklist != null && !storage.siteRules) {
+          const regStrip = /^[\r\t\f\v ]+|[\r\t\f\v ]+$/gm;
+          storage.siteRules = storage.blacklist.split('\n')
+            .map(l => l.replace(regStrip, '')).filter(Boolean)
+            .map(pattern => ({ pattern, enabled: false, speed: null }));
+          await this.save({ siteRules: storage.siteRules });
+          // Keep blacklist in storage for backward compat with older extension
+          // versions that may be synced across devices. Harmless dead weight.
+          window.VSC.logger.info('Migrated blacklist to siteRules');
+        } else if (storage.blacklist != null && storage.siteRules) {
+          // Both exist (e.g. partial sync, rollback). Prefer siteRules, log warning.
+          window.VSC.logger.warn('Found both blacklist and siteRules — using siteRules');
+        }
+
+        // Apply siteRules
+        this.settings.siteRules = storage.siteRules
+          || window.VSC.Constants.DEFAULT_SETTINGS.siteRules;
+
         // Apply loaded settings
         this.settings.lastSpeed = Number(storage.lastSpeed);
         this.settings.rememberSpeed = Boolean(storage.rememberSpeed);
