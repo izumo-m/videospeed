@@ -579,7 +579,7 @@ button:focus-visible {
   display: grid;
   grid-template-columns: 1fr 50px 80px 32px;
   gap: 8px;
-  padding-left: 44px;
+  padding-left: 0;
   padding-bottom: 4px;
   font-size: 12px;
   color: var(--md-on-surface-variant);
@@ -598,7 +598,7 @@ button:focus-visible {
   grid-template-columns: 1fr 50px 80px 32px;
   gap: 8px;
   align-items: center;
-  padding-left: 44px;
+  padding-left: 0;
   position: relative;
   margin: 4px 0;
 }
@@ -608,7 +608,7 @@ button:focus-visible {
   text-align: left;
 }
 
-.row.site-rule .ruleEnabled {
+.row.site-rule .ruleDisabled {
   justify-self: center;
 }
 
@@ -619,7 +619,7 @@ button:focus-visible {
 
 #add-site-rule {
   margin-top: 8px;
-  margin-left: 44px;
+  margin-left: 0;
   padding: 0 16px;
   min-height: 36px;
   font-size: 14px;
@@ -723,7 +723,7 @@ button:focus-visible {
 
   .site-rules-header {
     grid-template-columns: 1fr 50px 70px 32px;
-    padding-left: 44px;
+    padding-left: 0;
     font-size: 11px;
   }
 

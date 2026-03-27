@@ -59,7 +59,7 @@ const SHORTCUT_COLUMNS = [
 // Column spec for site rule rows
 const SITE_RULE_COLUMNS = [
   { key: 'pattern', type: 'text', className: 'rulePattern', placeholder: 'youtube.com or /regex/' },
-  { key: 'enabled', type: 'checkbox', className: 'ruleEnabled', default: true },
+  { key: 'disabled', type: 'checkbox', className: 'ruleDisabled', default: false },
   { key: 'speed', type: 'text', className: 'ruleSpeed', placeholder: '(global)' },
 ];
 
@@ -470,7 +470,7 @@ function add_site_rule(data = { enabled: true }) {
   const container = document.getElementById('site-rules-container');
   const speedDisplay = (data.speed != null) ? data.speed : undefined;
   return createRow(container, SITE_RULE_COLUMNS,
-    { pattern: data.pattern, enabled: data.enabled, speed: speedDisplay },
+    { pattern: data.pattern, disabled: !data.enabled, speed: speedDisplay },
     { className: 'site-rule', removable: true });
 }
 
@@ -494,7 +494,7 @@ function collectSiteRules() {
   const container = document.getElementById('site-rules-container');
   return Array.from(container.querySelectorAll('.row.site-rule')).map(row => ({
     pattern: row.querySelector('.rulePattern').value.trim(),
-    enabled: row.querySelector('.ruleEnabled').checked,
+    enabled: !row.querySelector('.ruleDisabled').checked,
     speed: parseSpeed(row.querySelector('.ruleSpeed').value),
   })).filter(r => r.pattern);
 }

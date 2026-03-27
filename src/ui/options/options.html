@@ -77,27 +77,27 @@
         </select>
       </div>
       <div class="row">
+        <label>Site rules<br />
+          <em>Per-site overrides. Use a domain or <a href="https://www.regexpal.com/">regex</a>
+            (e.g. <code>/\.edu$/i</code>). Check "Disable" to turn off the extension on that site.
+            Set a speed to override the default.</em>
+        </label>
+        <div id="site-rules-container">
+          <div class="site-rules-header">
+            <span>Pattern</span>
+            <span>Disable</span>
+            <span>Speed</span>
+          </div>
+        </div>
+        <button id="add-site-rule">Add Site Rule</button>
+        <div id="siteRulesValidation" class="css-validation"></div>
+      </div>
+      <div class="row">
         <label for="controllerCSS">Controller CSS<br />
           <em>Customize controller positioning per site. <a href="#" id="resetCSS">Reset to defaults</a>.</em>
         </label>
         <textarea id="controllerCSS" rows="20" cols="60"></textarea>
         <div id="cssValidation" class="css-validation"></div>
-      </div>
-      <div class="row">
-        <label>Site rules<br />
-          <em>Per-site overrides. Use a domain or <a href="https://www.regexpal.com/">regex</a>
-            (e.g. <code>/\.edu$/i</code>). Uncheck "Active" to disable the extension on that site.
-            Set a speed to override the default for that site.</em>
-        </label>
-        <div id="site-rules-container">
-          <div class="site-rules-header">
-            <span>Pattern</span>
-            <span>Active</span>
-            <span>Speed</span>
-          </div>
-        </div>
-        <button id="add-site-rule">Add Rule</button>
-        <div id="siteRulesValidation" class="css-validation"></div>
       </div>
     </section>
   </div>
