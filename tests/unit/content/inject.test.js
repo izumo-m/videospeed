@@ -42,14 +42,14 @@ describe('Inject', () => {
       if (video.vsc) {
         try {
           video.vsc.remove();
-        } catch (e) {
+        } catch {
           // Ignore cleanup errors
         }
       }
       if (video.parentNode) {
         try {
           video.parentNode.removeChild(video);
-        } catch (e) {
+        } catch {
           // Ignore cleanup errors
         }
       }

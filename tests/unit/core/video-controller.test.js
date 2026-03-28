@@ -57,7 +57,6 @@ describe('VideoController', () => {
     const mockVideo = createMockVideo();
     mockDOM.container.appendChild(mockVideo);
 
-    // eslint-disable-next-line no-unused-vars -- constructor registers with stateManager
     const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
 
     expect(controller).toBeDefined();
@@ -95,7 +94,7 @@ describe('VideoController', () => {
     const mockVideo = createMockVideo();
     mockDOM.container.appendChild(mockVideo);
 
-    // eslint-disable-next-line no-unused-vars -- constructor registers with stateManager
+    // eslint-disable-next-line no-unused-vars -- constructor side effects initialize speed and register controller state
     const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
 
     expect(mockVideo.playbackRate).toBe(2.0);
@@ -111,7 +110,6 @@ describe('VideoController', () => {
     const mockVideo = createMockVideo();
     mockDOM.container.appendChild(mockVideo);
 
-    // eslint-disable-next-line no-unused-vars -- constructor registers with stateManager
     const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
 
     expect(controller.div).toBeDefined();
@@ -129,7 +127,6 @@ describe('VideoController', () => {
     const mockVideo = createMockVideo({ currentSrc: '' });
     mockDOM.container.appendChild(mockVideo);
 
-    // eslint-disable-next-line no-unused-vars -- constructor registers with stateManager
     const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
 
     expect(controller.div.classList.contains('vsc-nosource')).toBe(true);
@@ -146,7 +143,6 @@ describe('VideoController', () => {
     const mockVideo = createMockVideo();
     mockDOM.container.appendChild(mockVideo);
 
-    // eslint-disable-next-line no-unused-vars -- constructor registers with stateManager
     const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
 
     expect(controller.div.classList.contains('vsc-hidden')).toBe(true);
@@ -162,7 +158,6 @@ describe('VideoController', () => {
     const mockVideo = createMockVideo();
     mockDOM.container.appendChild(mockVideo);
 
-    // eslint-disable-next-line no-unused-vars -- constructor registers with stateManager
     const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
 
     // Verify setup
