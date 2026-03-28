@@ -7,8 +7,53 @@ If you would like to help, getting started is easy.
 
 ## Get Started
 
+### Windows Setup
+
+If you are on Windows, complete these steps before proceeding.
+
+#### 1. Install Node.js via fnm
+
+[fnm](https://github.com/Schniz/fnm) is the recommended Node.js version manager
+on Windows. Install it with:
+
+```sh
+winget install Schniz.fnm
+```
+
+Then add fnm initialisation to your PowerShell profile so Node is available in
+interactive sessions:
+
+```powershell
+echo 'fnm env --use-on-cd --shell powershell | Out-String | Invoke-Expression' >> $PROFILE
+```
+
+#### 2. Install Git for Windows
+
+Husky's Git hooks are POSIX shell scripts that depend on `sh.exe`, which is
+bundled with [Git for Windows](https://git-scm.com/download/win). Make sure
+you clone and run Git commands through Git Bash or a terminal that uses Git's
+bundled shell.
+
+Add fnm initialisation to your Git Bash profile so Node is also available there:
+
+```sh
+echo 'eval "$(fnm env --use-on-cd --shell bash)"' >> ~/.bashrc
+```
+
+#### 3. Configure Husky's hook environment
+
+Husky hooks run in a non-interactive shell where `~/.bashrc` is never sourced,
+so Node would not be found. Fix this by appending fnm initialisation to
+`~/.config/husky/init.sh`, which Husky sources before every hook:
+
+```sh
+echo 'eval "$(fnm env)"' >> ~/.config/husky/init.sh
+```
+
+### Contribution Process
+
 1. You must have a github account and be logged in
-2. Open https://github.com/igrigorik/videospeed/
+2. Open <https://github.com/igrigorik/videospeed/>
 3. Fork the repo by clicking the "Fork" link on the top-right corner of the page
 4. Once the fork is ready, clone to your local PC
 
@@ -68,14 +113,13 @@ If you would like to help, getting started is easy.
 
 12. Commit and push your changes to github
 
-```sh
-git commit -m "Awesome description of some awesome changes."
-git push
-```
+    ```sh
+    git commit -m "Awesome description of some awesome changes."
+    git push
+    ```
 
 13. Open your branch up on the github website then click `New pull request` and
     write up a description of your changes.
-
 
 ## Optional
 
