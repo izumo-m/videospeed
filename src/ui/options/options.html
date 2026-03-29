@@ -120,7 +120,10 @@
               <a href="#" id="resetCSS">Reset to defaults</a>.</em
             >
           </label>
-          <textarea id="controllerCSS" rows="20" cols="60"></textarea>
+          <div class="css-editor">
+            <pre id="cssHighlight" class="css-highlight" aria-hidden="true"></pre>
+            <textarea id="controllerCSS" rows="30" spellcheck="false"></textarea>
+          </div>
           <div id="cssValidation" class="css-validation"></div>
         </div>
       </section>

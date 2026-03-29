@@ -19,6 +19,73 @@ window.VSC = window.VSC || {};
 
 let keyBindings = [];
 
+/**
+ * Lightweight CSS syntax highlighter for the controller CSS editor.
+ * Returns HTML with spans wrapping comments, selectors, properties,
+ * values, and braces. Designed for the transparent-textarea overlay
+ * pattern — the textarea handles editing, this colors the <pre> behind it.
+ */
+function highlightCSS(text) {
+  const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  // Tokenize: pull out comments first, then process the rest
+  let result = '';
+  let pos = 0;
+
+  while (pos < escaped.length) {
+    // Comments
+    const commentStart = escaped.indexOf('/*', pos);
+    if (commentStart === pos) {
+      const commentEnd = escaped.indexOf('*/', pos + 2);
+      const end = commentEnd === -1 ? escaped.length : commentEnd + 2;
+      result += `<span class="css-comment">${escaped.slice(pos, end)}</span>`;
+      pos = end;
+      continue;
+    }
+
+    // Find next comment to know where to stop
+    const nextComment = commentStart === -1 ? escaped.length : commentStart;
+
+    // Process non-comment chunk
+    const chunk = escaped.slice(pos, nextComment);
+    result += chunk
+      // Braces
+      .replace(/([{}])/g, '<span class="css-brace">$1</span>')
+      // Properties (word-chars before colon, inside a block)
+      .replace(/([\w-]+)\s*(?=:)/g, '<span class="css-property">$1</span>')
+      // Values (after colon, before semicolon or closing brace)
+      .replace(/:\s*([^;{}]+)(;)/g, ': <span class="css-value">$1</span>$2')
+      // Selectors (text before opening brace, not already wrapped)
+      .replace(
+        /([^{}><\n][^{}<>]*?)(\s*<span class="css-brace">\{)/g,
+        '<span class="css-selector">$1</span>$2'
+      );
+
+    pos = nextComment;
+  }
+
+  return result;
+}
+
+/** Sync textarea content to the highlighted <pre> overlay */
+function updateCSSHighlight() {
+  const textarea = document.getElementById('controllerCSS');
+  const highlight = document.getElementById('cssHighlight');
+  if (textarea && highlight) {
+    highlight.innerHTML = `${highlightCSS(textarea.value)}\n`;
+  }
+}
+
+/** Sync scroll position between textarea and highlight overlay */
+function syncCSSScroll() {
+  const textarea = document.getElementById('controllerCSS');
+  const highlight = document.getElementById('cssHighlight');
+  if (textarea && highlight) {
+    highlight.scrollTop = textarea.scrollTop;
+    highlight.scrollLeft = textarea.scrollLeft;
+  }
+}
+
 // Action labels — shared by predefined and custom shortcut rows
 const ACTION_OPTIONS = [
   ['slower', 'Decrease speed'],
@@ -80,6 +147,15 @@ function findDroppedRules(css, parsedSheet) {
         blocks.push(css.substring(start, i + 1).trim());
         start = i + 1;
       }
+    }
+  }
+
+  // Unclosed brace: the trailing chunk was never added to blocks
+  if (depth !== 0) {
+    const remainder = css.substring(start).trim();
+    if (remainder) {
+      const selector = remainder.split('{')[0].trim();
+      return [selector || remainder.slice(0, 40)];
     }
   }
 
@@ -1001,21 +1077,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     splitMenu.hidden = true;
   });
 
-  // Live CSS validation as user types (debounced)
+  // CSS editor: live validation (debounced) + syntax highlighting + scroll sync
+  const cssTextarea = document.getElementById('controllerCSS');
   let cssValidationTimer;
-  document.getElementById('controllerCSS').addEventListener('input', () => {
+  cssTextarea.addEventListener('input', () => {
+    updateCSSHighlight();
     clearTimeout(cssValidationTimer);
     cssValidationTimer = setTimeout(() => {
-      validateControllerCSS(document.getElementById('controllerCSS').value);
+      validateControllerCSS(cssTextarea.value);
     }, 300);
   });
+  cssTextarea.addEventListener('scroll', syncCSSScroll);
 
-  // Validate on initial load
-  validateControllerCSS(document.getElementById('controllerCSS').value);
+  // Initial highlight + validation
+  updateCSSHighlight();
+  validateControllerCSS(cssTextarea.value);
 
   document.getElementById('resetCSS').addEventListener('click', (e) => {
     e.preventDefault();
     document.getElementById('controllerCSS').value = window.VSC.Constants.DEFAULT_CONTROLLER_CSS;
+    updateCSSHighlight();
     validateControllerCSS(window.VSC.Constants.DEFAULT_CONTROLLER_CSS);
     markDirty();
   });

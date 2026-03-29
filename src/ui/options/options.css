@@ -722,25 +722,94 @@ button:focus-visible {
   font-size: inherit;
 }
 
-#controllerCSS {
+/* Syntax-highlighted CSS editor: transparent textarea over colored <pre> */
+.css-editor {
+  position: relative;
+  width: 100%;
+}
+
+.css-editor textarea,
+.css-editor .css-highlight {
   font-family: 'Menlo', 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 12px;
   line-height: 1.5;
   tab-size: 2;
   white-space: pre;
-  overflow-x: auto;
-  scrollbar-width: none;
+  overflow-wrap: normal;
+  word-wrap: normal;
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid var(--md-outline);
+  border-radius: 12px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.css-editor textarea {
+  display: block;
+  position: relative;
+  z-index: 1;
+  color: transparent;
+  caret-color: var(--md-on-surface);
+  background: transparent;
+  resize: vertical;
+  overflow: auto;
   transition: border-color 0.2s;
 }
 
-#controllerCSS::-webkit-scrollbar:horizontal {
-  display: none;
+.css-editor .css-highlight {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background: var(--md-surface-container);
+  color: var(--md-on-surface);
+  border-color: transparent;
 }
 
-#controllerCSS.css-error {
+/* Syntax token colors */
+.css-highlight .css-comment {
+  color: #6a9955;
+}
+.css-highlight .css-selector {
+  color: #d7ba7d;
+}
+.css-highlight .css-property {
+  color: #9cdcfe;
+}
+.css-highlight .css-value {
+  color: #ce9178;
+}
+.css-highlight .css-brace {
+  color: #808080;
+}
+
+@media (prefers-color-scheme: light) {
+  .css-highlight .css-comment {
+    color: #008000;
+  }
+  .css-highlight .css-selector {
+    color: #800000;
+  }
+  .css-highlight .css-property {
+    color: #0451a5;
+  }
+  .css-highlight .css-value {
+    color: #a31515;
+  }
+  .css-highlight .css-brace {
+    color: #333;
+  }
+}
+
+.css-editor textarea.css-error {
   border-color: #d32f2f;
 }
-#controllerCSS.css-warn {
+.css-editor textarea.css-warn {
   border-color: #f57c00;
 }
 
