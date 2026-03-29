@@ -518,6 +518,21 @@ button:focus-visible {
 /* Specific button styling */
 #save {
   background-color: var(--md-primary);
+  transition:
+    background-color 0.25s ease,
+    opacity 0.25s ease;
+}
+
+/* !important needed to override .split-button button.split-primary's !important transparent */
+.split-button button#save.has-changes {
+  background-color: rgba(76, 175, 80, 0.15) !important;
+  color: #4caf50 !important;
+  border-color: #4caf50 !important;
+}
+
+.split-button button#save.saved {
+  opacity: 0.6 !important;
+  pointer-events: none;
 }
 
 #experimental {

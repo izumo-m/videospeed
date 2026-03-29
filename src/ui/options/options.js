@@ -628,9 +628,8 @@ async function save_options() {
   }
 
   const status = document.getElementById('status');
-  status.textContent = 'Saving...';
-  status.classList.remove('success', 'error');
-  status.classList.add('show');
+  status.textContent = '';
+  status.classList.remove('show', 'success', 'error');
 
   try {
     keyBindings = [];
@@ -690,20 +689,14 @@ async function save_options() {
 
     const ok = await window.VSC.videoSpeedConfig.save(settingsToSave);
 
-    if (ok) {
-      status.textContent = 'Options saved';
-      status.classList.add('success');
-    } else {
+    if (!ok) {
       status.textContent = 'Error: failed to save options to storage';
-      status.classList.add('error');
-    }
-    setTimeout(
-      () => {
+      status.classList.add('show', 'error');
+      setTimeout(() => {
         status.textContent = '';
-        status.classList.remove('show', 'success', 'error');
-      },
-      ok ? 2000 : 3000
-    );
+        status.classList.remove('show', 'error');
+      }, 3000);
+    }
   } catch (error) {
     console.error('Failed to save options:', error);
     status.textContent = `Error saving options: ${error.message}`;
@@ -938,17 +931,43 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await restore_options();
 
-  document.getElementById('save').addEventListener('click', async (e) => {
+  const saveBtn = document.getElementById('save');
+
+  // Dirty-state tracking: green button when unsaved changes exist,
+  // dimmed briefly after save to confirm the action landed.
+  function markDirty() {
+    saveBtn.classList.add('has-changes');
+    saveBtn.classList.remove('saved');
+  }
+  function markClean() {
+    saveBtn.classList.remove('has-changes');
+    saveBtn.classList.add('saved');
+    setTimeout(() => saveBtn.classList.remove('saved'), 1500);
+  }
+
+  // Catch all form changes via delegation (covers dynamic rows too)
+  document.body.addEventListener('input', markDirty);
+  document.body.addEventListener('change', markDirty);
+
+  saveBtn.addEventListener('click', async (e) => {
     e.preventDefault();
     await save_options();
+    markClean();
   });
 
-  document.getElementById('add').addEventListener('click', () => add_shortcut());
-  document.getElementById('add-site-rule').addEventListener('click', () => add_site_rule());
+  document.getElementById('add').addEventListener('click', () => {
+    add_shortcut();
+    markDirty();
+  });
+  document.getElementById('add-site-rule').addEventListener('click', () => {
+    add_site_rule();
+    markDirty();
+  });
 
   document.getElementById('restore').addEventListener('click', async (e) => {
     e.preventDefault();
     await restore_defaults();
+    markDirty();
   });
 
   document.getElementById('export').addEventListener('click', (e) => {
@@ -998,6 +1017,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     e.preventDefault();
     document.getElementById('controllerCSS').value = window.VSC.Constants.DEFAULT_CONTROLLER_CSS;
     validateControllerCSS(window.VSC.Constants.DEFAULT_CONTROLLER_CSS);
+    markDirty();
   });
 
   // About and feedback button event listeners
@@ -1031,6 +1051,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.addEventListener('click', (event) => {
     eventCaller(event, 'removeParent', () => {
       event.target.closest('.row').remove();
+      markDirty();
     });
   });
   document.addEventListener('change', (event) => {
