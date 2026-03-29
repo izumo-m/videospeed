@@ -350,7 +350,7 @@ input[type='number'] {
   color: var(--md-on-surface);
   font-size: 14px;
   transition: all 0.2s ease;
-  min-height: 40px;
+  min-height: 32px;
   width: 75px;
   text-align: center;
 }
@@ -434,7 +434,7 @@ select {
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-height: 40px;
+  min-height: 32px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%2349454f' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 6px center;
@@ -474,7 +474,7 @@ select:focus {
 button {
   appearance: none;
   padding: 0 24px;
-  min-height: 40px;
+  min-height: 32px;
   border: none;
   border-radius: 20px;
   background-color: var(--md-primary);
@@ -601,31 +601,20 @@ button:focus-visible {
   gap: 12px;
 }
 
-/* Status message */
+/* Status message — collapsed when empty, expands for errors */
 #status {
-  display: block;
+  display: none;
   margin-top: 16px;
   padding: 12px 24px;
   border-radius: 8px;
   font-size: 14px;
-  background-color: var(--md-primary-container);
-  color: var(--md-on-primary-container);
-  opacity: 0;
-  transition: all 0.3s ease;
   text-align: center;
   font-weight: 500;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 #status.show {
-  opacity: 1;
-  transform: translateY(-4px);
-}
-
-/* Success state */
-#status.success {
-  background-color: #4caf50;
-  color: white;
+  display: block;
 }
 
 /* Error state */
@@ -637,10 +626,6 @@ button:focus-visible {
 @media (prefers-color-scheme: dark) {
   #status {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  }
-
-  #status.success {
-    background-color: #2e7d32;
   }
 
   #status.error {
@@ -823,10 +808,37 @@ button:focus-visible {
   color: #f57c00;
 }
 
+#panel-faq section {
+  margin-top: 0;
+}
+
+/* FAQ table of contents */
+.faq-toc {
+  margin: 0 0 12px;
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.faq-toc a {
+  color: var(--md-primary);
+  text-decoration: none;
+}
+
+.faq-toc a:hover {
+  text-decoration: underline;
+}
+
+#faq hr {
+  border: none;
+  border-top: 1px solid var(--md-outline-variant);
+  margin: 0 0 16px;
+}
+
 /* FAQ section */
 #faq {
-  margin-top: 24px;
-  padding: 24px;
+  margin-top: 0;
+  padding: 16px 24px;
   background-color: var(--md-surface-variant);
   border-radius: 12px;
 }

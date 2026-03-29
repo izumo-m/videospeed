@@ -71,11 +71,17 @@
     <div id="panel-advanced" style="display: none">
       <section>
         <div class="row">
-          <label for="controllerOpacity">Controller opacity</label>
+          <label for="controllerOpacity"
+            >Controller opacity<br />
+            <em>0 = fully transparent, 1 = fully opaque. Default: 0.3</em>
+          </label>
           <input id="controllerOpacity" type="text" value="" />
         </div>
         <div class="row">
-          <label for="controllerButtonSize">Controller Button Size</label>
+          <label for="controllerButtonSize"
+            >Controller button size<br />
+            <em>Font size in pixels for the speed display and buttons. Default: 14</em>
+          </label>
           <input id="controllerButtonSize" type="text" value="" />
         </div>
         <div class="row">
@@ -137,7 +143,22 @@
     <div id="panel-faq" style="display: none">
       <section>
         <div id="faq">
-          <h4>The speed controls are not showing up for local videos or Incognito mode?</h4>
+          <ul class="faq-toc">
+            <li><a href="#faq-local">Local files / Incognito</a></li>
+            <li><a href="#faq-disable">Disable on a site</a></li>
+            <li><a href="#faq-site-speed">Default speed per site</a></li>
+            <li><a href="#faq-remember">Remember speed</a></li>
+            <li><a href="#faq-keys">Shortcut conflicts</a></li>
+            <li><a href="#faq-position">Controller positioning</a></li>
+            <li><a href="#faq-missing">Controller not showing</a></li>
+            <li><a href="#faq-spa">Speed resets on navigate</a></li>
+            <li><a href="#faq-audio">Audio support</a></li>
+          </ul>
+          <hr />
+
+          <h4 id="faq-local">
+            The speed controls are not showing up for local videos or Incognito mode?
+          </h4>
           <p>
             To enable playback of local media (e.g. File &gt; Open File) or Incognito mode, you need
             to manually grant additional permissions to the extension.
@@ -149,6 +170,104 @@
               URLs" and/or "Allow in Incognito".
             </li>
           </ul>
+
+          <h4 id="faq-disable">How do I disable the extension on a specific site?</h4>
+          <p>
+            Go to <strong>Advanced &gt; Site rules</strong> and add a rule with the site's domain
+            (e.g. <code>example.com</code>). Check the <strong>Disable</strong> checkbox. The
+            extension will not inject on that site. You can also use regex patterns like
+            <code>/\.edu$/i</code> to match multiple domains.
+          </p>
+
+          <h4 id="faq-site-speed">How do I set a default speed for a specific site?</h4>
+          <p>
+            In <strong>Advanced &gt; Site rules</strong>, add a rule with the site's domain and set
+            the <strong>Speed</strong> field to your desired value (e.g. <code>2</code> for 2x).
+            Leave the Disable checkbox unchecked. Every new video on that site will start at that
+            speed.
+          </p>
+
+          <h4 id="faq-remember">How does "Remember playback speed" interact with site rules?</h4>
+          <p>
+            When <code>rememberSpeed</code> is <strong>off</strong> (default), each page load starts
+            at 1x &mdash; or the site rule speed if one matches. Your in-session speed changes apply
+            to all new videos but are forgotten on page reload.
+          </p>
+          <p>
+            When <code>rememberSpeed</code> is <strong>on</strong>, the last speed you set is stored
+            and persists across sessions. This stored speed <strong>takes precedence</strong> over
+            site rule defaults. To let a site rule win again, either turn off
+            <code>rememberSpeed</code> or manually reset to 1x.
+          </p>
+
+          <h4 id="faq-keys">A site's keyboard shortcuts conflict with mine. What can I do?</h4>
+          <p>Three options:</p>
+          <ul>
+            <li>
+              <strong>Add a modifier:</strong> In Settings &gt; Shortcuts, add <code>Shift</code>,
+              <code>Ctrl</code>, or <code>Alt</code> to your shortcut keys to create chord
+              combinations the site won't intercept.
+            </li>
+            <li>
+              <strong>Rebind to unused keys:</strong> Change the default key to one the site doesn't
+              use.
+            </li>
+            <li>
+              <strong>Enable exclusive mode:</strong> Turn on
+              <code>Exclusive keyboard shortcuts</code> in Preferences to prevent sites from also
+              handling your VSC shortcut keys.
+            </li>
+          </ul>
+
+          <h4 id="faq-position">
+            The controller overlaps with site controls. How do I reposition it?
+          </h4>
+          <p>
+            Go to <strong>Advanced &gt; Controller CSS</strong>. Add a domain rule targeting
+            <code>vsc-controller</code> using the <code>--vsc-domain</code> CSS variable. Example:
+          </p>
+          <p>
+            <code
+              >:root[style*='--vsc-domain: "example.com"'] vsc-controller { position: relative; top:
+              60px; }</code
+            >
+          </p>
+          <p>
+            You can also drag the controller to a new position on any page. See the existing rules
+            for YouTube, Netflix, etc. as reference.
+          </p>
+
+          <h4 id="faq-missing">The controller is not appearing on a site. Why?</h4>
+          <p>Common causes:</p>
+          <ul>
+            <li>
+              The site is in your <strong>Site rules</strong> with Disable checked &mdash; remove or
+              uncheck it.
+            </li>
+            <li>
+              The site uses Flash or a non-HTML5 player &mdash; the extension only works with native
+              <code>&lt;video&gt;</code> and <code>&lt;audio&gt;</code> elements.
+            </li>
+            <li>
+              <code>Hide controller by default</code> is enabled &mdash; press your display toggle
+              shortcut (default: <code>V</code>) to show it.
+            </li>
+          </ul>
+
+          <h4 id="faq-spa">Speed resets when I navigate on YouTube or similar single-page apps?</h4>
+          <p>
+            YouTube uses SPA navigation &mdash; the page doesn't fully reload, but the player may
+            reinitialize. The extension restores speed from the in-session value automatically. If
+            speed still resets, enable <code>rememberSpeed</code> in Preferences to persist speed
+            across navigations and sessions.
+          </p>
+
+          <h4 id="faq-audio">Does this work with audio elements, not just video?</h4>
+          <p>
+            Yes. When <code>Audio support</code> is enabled in Preferences (on by default), the
+            controller appears on <code>&lt;audio&gt;</code> elements too. All speed controls and
+            keyboard shortcuts work identically for audio.
+          </p>
         </div>
         <div class="row">
           <button id="about" class="secondary">About Video Speed Controller</button>
