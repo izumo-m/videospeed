@@ -30,7 +30,7 @@ vsc-controller {
 }
 
 /* disable Vimeo video overlay */
-div.video-wrapper+div.target {
+div.video-wrapper + div.target {
   height: 0;
 }
 
@@ -38,8 +38,4 @@ div.video-wrapper+div.target {
 div.video-player.has_played.vertically_center:before,
 div.legacy-video-player.has_played.vertically_center:before {
   content: none !important;
-}
-
-section[role="tabpanel"][aria-label="Video Player"] {
-  top: 80px;
 }

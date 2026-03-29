@@ -39,10 +39,9 @@ export const DEFAULT_CONTROLLER_CSS = `/* === Domain-based rules (stable — hos
   top: 85px;
 }
 
-/* Google Drive */
-:root[style*='--vsc-domain: "drive.google.com"'] vsc-controller {
-  position: relative;
-  top: 10px;
+/* Google Drive — shift native controls overlay down to expose video */
+:root[style*='--vsc-domain: "drive.google.com"'] section[role="tabpanel"][aria-label="Video Player"] {
+  top: 80px;
 }
 
 /* ChatGPT */
@@ -80,4 +79,11 @@ export const DEFAULT_CONTROLLER_CSS = `/* === Domain-based rules (stable — hos
 /* Amazon Prime Video — prevent black overlay */
 .dv-player-fullscreen vsc-controller {
   height: 0 !important;
+}
+
+/* Google Drive YouTube embed — no info bar, override embedded player offset.
+   Extra :root bumps specificity above .html5-video-player:not(...) rule. */
+:root:root[style*='--vsc-domain: "youtube.googleapis.com"'] vsc-controller {
+  position: relative;
+  top: 0px;
 }`;

@@ -208,6 +208,13 @@ class VideoSpeedExtension {
    */
   injectControllerCSS(doc) {
     try {
+      // content-entry.js already injects the authoritative version (from
+      // chrome.storage, which includes user customizations). Skip if present
+      // to avoid overwriting with defaults from the page-context bridge
+      // (which intentionally excludes controllerCSS).
+      if (doc.getElementById('vsc-controller-css')) {
+        return;
+      }
       const css = this.config.settings.controllerCSS ?? window.VSC.Constants.DEFAULT_CONTROLLER_CSS;
       const style = doc.createElement('style');
       style.id = 'vsc-controller-css';

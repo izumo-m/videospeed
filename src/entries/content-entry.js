@@ -34,6 +34,10 @@ async function init() {
       return;
     }
 
+    // Read controllerCSS BEFORE deleting from settings (it's excluded from
+    // the page context bridge but needed for style injection below).
+    const controllerCSS = settings.controllerCSS ?? DEFAULT_CONTROLLER_CSS;
+
     delete settings.blacklist;
     delete settings.enabled;
     delete settings.controllerCSS;
@@ -54,7 +58,6 @@ async function init() {
     // are in the DOM before any controller elements are created.
     // Base rule is in inject.css (manifest CSS, always available).
     // This adds site-specific overrides that layer on top.
-    const controllerCSS = settings.controllerCSS ?? DEFAULT_CONTROLLER_CSS;
     const styleEl = document.createElement('style');
     styleEl.id = 'vsc-controller-css';
     styleEl.textContent = controllerCSS;
