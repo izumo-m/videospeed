@@ -107,8 +107,7 @@ describe('UIToStorageFlow', () => {
 
     const mockVideo = createMockVideo({ playbackRate: 1.0 });
     mockDOM.container.appendChild(mockVideo);
-    // eslint-disable-next-line no-unused-vars -- constructor sets up controller
-    const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
+    const _controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
 
     // Video should be at 2.0 after controller init (rememberSpeed + lastSpeed)
     expect(mockVideo.playbackRate).toBe(2.0);
