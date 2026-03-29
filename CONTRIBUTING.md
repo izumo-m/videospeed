@@ -7,48 +7,25 @@ If you would like to help, getting started is easy.
 
 ## Get Started
 
-### Windows Setup
+### Windows Prerequisites
 
-If you are on Windows, complete these steps before proceeding.
+The build scripts and tests are cross-platform, but Git hooks (Husky) require
+a POSIX shell. Windows users need:
 
-#### 1. Install Node.js via fnm
-
-[fnm](https://github.com/Schniz/fnm) is the recommended Node.js version manager
-on Windows. Install it with:
-
-```sh
-winget install Schniz.fnm
-```
-
-Then add fnm initialisation to your PowerShell profile so Node is available in
-interactive sessions:
-
-```powershell
-echo 'fnm env --use-on-cd --shell powershell | Out-String | Invoke-Expression' >> $PROFILE
-```
-
-#### 2. Install Git for Windows
-
-Husky's Git hooks are POSIX shell scripts that depend on `sh.exe`, which is
-bundled with [Git for Windows](https://git-scm.com/download/win). Make sure
-you clone and run Git commands through Git Bash or a terminal that uses Git's
-bundled shell.
-
-Add fnm initialisation to your Git Bash profile so Node is also available there:
-
-```sh
-echo 'eval "$(fnm env --use-on-cd --shell bash)"' >> ~/.bashrc
-```
-
-#### 3. Configure Husky's hook environment
-
-Husky hooks run in a non-interactive shell where `~/.bashrc` is never sourced,
-so Node would not be found. Fix this by appending fnm initialisation to
-`~/.config/husky/init.sh`, which Husky sources before every hook:
-
-```sh
-echo 'eval "$(fnm env)"' >> ~/.config/husky/init.sh
-```
+1. **[Git for Windows](https://git-scm.com/download/win)** — provides the
+   `sh.exe` that Husky hooks run under. Use Git Bash or a terminal backed by
+   Git's bundled shell.
+2. **Node.js >= 22.13** — install via any version manager that reads `.nvmrc`
+   ([fnm](https://github.com/Schniz/fnm), [nvm-windows](https://github.com/coreybutler/nvm-windows),
+   [volta](https://volta.sh/), etc.). Make sure Node is available in both your
+   regular terminal and Git Bash.
+3. **Husky + Node in hooks** — Husky hooks run in a non-interactive shell where
+   your shell profile isn't sourced. If hooks fail with "node not found", add
+   your version manager's init to `~/.config/husky/init.sh` (Husky sources this
+   before every hook). For example with fnm:
+   ```sh
+   echo 'eval "$(fnm env)"' >> ~/.config/husky/init.sh
+   ```
 
 ### Contribution Process
 
