@@ -208,4 +208,89 @@ describe('Settings', () => {
 
     window.VSC.StorageManager.set = originalSet;
   });
+
+  // --- Site rules + speed initialization ---
+
+  it('siteDefaultSpeed is set when siteRule matches with speed', async () => {
+    const config = new window.VSC.VideoSpeedConfig();
+    // Mock matchSiteRule to return a rule with speed
+    const original = window.VSC.matchSiteRule;
+    window.VSC.matchSiteRule = () => ({ pattern: 'test.com', enabled: true, speed: 2.3 });
+
+    await config.load();
+    expect(config.settings.siteDefaultSpeed).toBe(2.3);
+
+    window.VSC.matchSiteRule = original;
+  });
+
+  it('siteDefaultSpeed is not set when siteRule matches with speed=null', async () => {
+    const config = new window.VSC.VideoSpeedConfig();
+    const original = window.VSC.matchSiteRule;
+    window.VSC.matchSiteRule = () => ({ pattern: 'test.com', enabled: false, speed: null });
+
+    await config.load();
+    expect(config.settings.siteDefaultSpeed).toBeUndefined();
+
+    window.VSC.matchSiteRule = original;
+  });
+
+  it('siteDefaultSpeed is not set when no rule matches', async () => {
+    const config = new window.VSC.VideoSpeedConfig();
+    const original = window.VSC.matchSiteRule;
+    window.VSC.matchSiteRule = () => null;
+
+    await config.load();
+    expect(config.settings.siteDefaultSpeed).toBeUndefined();
+
+    window.VSC.matchSiteRule = original;
+  });
+
+  it('lastSpeed reset to 1.0 when rememberSpeed is false', async () => {
+    // Inject lastSpeed=1.5 into mock storage
+    globalThis.chrome.storage.sync.get = (keys, callback) => {
+      setTimeout(() => {
+        const defaults = typeof keys === 'object' ? keys : {};
+        callback({ ...defaults, lastSpeed: 1.5, rememberSpeed: false });
+      }, 10);
+    };
+
+    const config = new window.VSC.VideoSpeedConfig();
+    await config.load();
+    expect(config.settings.lastSpeed).toBe(1.0);
+  });
+
+  it('lastSpeed preserved when rememberSpeed is true', async () => {
+    globalThis.chrome.storage.sync.get = (keys, callback) => {
+      setTimeout(() => {
+        const defaults = typeof keys === 'object' ? keys : {};
+        callback({ ...defaults, lastSpeed: 1.5, rememberSpeed: true });
+      }, 10);
+    };
+
+    const config = new window.VSC.VideoSpeedConfig();
+    await config.load();
+    expect(config.settings.lastSpeed).toBe(1.5);
+  });
+
+  it('site rule speed wins over stored lastSpeed when rememberSpeed is off', async () => {
+    // Storage has lastSpeed=1.5 from a previous session, rememberSpeed=false
+    globalThis.chrome.storage.sync.get = (keys, callback) => {
+      setTimeout(() => {
+        const defaults = typeof keys === 'object' ? keys : {};
+        callback({ ...defaults, lastSpeed: 1.5, rememberSpeed: false });
+      }, 10);
+    };
+
+    const config = new window.VSC.VideoSpeedConfig();
+    const original = window.VSC.matchSiteRule;
+    window.VSC.matchSiteRule = () => ({ pattern: 'test.com', enabled: true, speed: 2.3 });
+
+    await config.load();
+
+    // lastSpeed should be reset to 1.0, siteDefaultSpeed should be 2.3
+    expect(config.settings.lastSpeed).toBe(1.0);
+    expect(config.settings.siteDefaultSpeed).toBe(2.3);
+
+    window.VSC.matchSiteRule = original;
+  });
 });

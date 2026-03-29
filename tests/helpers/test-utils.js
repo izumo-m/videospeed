@@ -33,6 +33,11 @@ export function createMockVideo(options = {}) {
       writable: true,
       configurable: true,
     },
+    readyState: {
+      value: options.readyState ?? 1,
+      writable: true,
+      configurable: true,
+    },
     paused: {
       value: options.paused || false,
       writable: true,

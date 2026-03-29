@@ -462,17 +462,26 @@ class ActionHandler {
     const speedValue = speed.toFixed(2);
     const numericSpeed = Number(speedValue);
 
-    // 1. Start cooldown FIRST — the playbackRate assignment below triggers a
+    // 1. Update lastSpeed BEFORE touching playbackRate. The playbackRate
+    //    assignment (step 3) fires a synchronous native ratechange event.
+    //    The cooldown handler reads lastSpeed as the "authoritative" speed
+    //    to restore during fight-back. If lastSpeed is stale, the handler
+    //    undoes the very change we're making.
+    if (source !== 'external') {
+      this.config.settings.lastSpeed = numericSpeed;
+    }
+
+    // 2. Start cooldown — the playbackRate assignment below triggers a
     //    native ratechange event synchronously. Without cooldown active,
     //    handleRateChange would misclassify it as an external site change.
     if (this.eventManager) {
       this.eventManager.refreshCoolDown();
     }
 
-    // 2. Set the actual playback rate via site handler (native ratechange fires here, blocked by cooldown)
+    // 3. Set the actual playback rate via site handler (native ratechange fires here, blocked by cooldown)
     window.VSC.siteHandlerManager.handleSpeedChange(video, numericSpeed);
 
-    // 3. Dispatch synthetic event with source tracking
+    // 4. Dispatch synthetic event with source tracking
     video.dispatchEvent(
       new CustomEvent('ratechange', {
         bubbles: true,
@@ -485,7 +494,7 @@ class ActionHandler {
       })
     );
 
-    // 4. Update UI indicator
+    // 5. Update UI indicator
     const speedIndicator = video.vsc?.speedIndicator;
     if (!speedIndicator) {
       window.VSC.logger.warn(
@@ -495,15 +504,9 @@ class ActionHandler {
     }
     speedIndicator.textContent = numericSpeed.toFixed(2);
 
-    // 5. Update lastSpeed only for user-initiated changes — external/site
-    //    speed overrides must not corrupt the user's intended speed.
-    if (source !== 'external') {
-      this.config.settings.lastSpeed = numericSpeed;
-
-      // 6. Persist to storage only if rememberSpeed is enabled
-      if (this.config.settings.rememberSpeed) {
-        this.config.save({ lastSpeed: numericSpeed });
-      }
+    // 6. Persist to storage only if rememberSpeed is enabled
+    if (source !== 'external' && this.config.settings.rememberSpeed) {
+      this.config.save({ lastSpeed: numericSpeed });
     }
 
     // 7. Flash controller briefly for visual feedback

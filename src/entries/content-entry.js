@@ -5,6 +5,7 @@
 
 import { injectScript, setupMessageBridge } from '../content/injection-bridge.js';
 import { isBlacklisted } from '../utils/blacklist.js';
+import { matchSiteRule } from '../utils/site-pattern.js';
 import { DEFAULT_CONTROLLER_CSS } from '../styles/controller-css-defaults.js';
 
 async function init() {
@@ -24,8 +25,12 @@ async function init() {
       return;
     }
 
-    // Early exit if site is blacklisted
+    // Early exit if site is blacklisted (legacy) or disabled via siteRules
     if (isBlacklisted(settings.blacklist, location.href)) {
+      return;
+    }
+    const siteRule = matchSiteRule(settings.siteRules, location.href);
+    if (siteRule && siteRule.enabled === false) {
       return;
     }
 
@@ -80,8 +85,14 @@ async function init() {
       const disabled = 'enabled' in changes && changes.enabled.newValue === false;
       const blacklisted =
         'blacklist' in changes && isBlacklisted(changes.blacklist.newValue, location.href);
+      const siteRuleDisabled =
+        'siteRules' in changes &&
+        (() => {
+          const rule = matchSiteRule(changes.siteRules.newValue, location.href);
+          return rule && rule.enabled === false;
+        })();
 
-      if (disabled || blacklisted) {
+      if (disabled || blacklisted || siteRuleDisabled) {
         bridge.sendCommand('VSC_TEARDOWN');
         return;
       }
@@ -89,8 +100,14 @@ async function init() {
       const reEnabled = 'enabled' in changes && changes.enabled.newValue === true;
       const unblacklisted =
         'blacklist' in changes && !isBlacklisted(changes.blacklist.newValue, location.href);
+      const siteRuleReEnabled =
+        'siteRules' in changes &&
+        (() => {
+          const rule = matchSiteRule(changes.siteRules.newValue, location.href);
+          return !rule || rule.enabled !== false;
+        })();
 
-      if (reEnabled || unblacklisted) {
+      if (reEnabled || unblacklisted || siteRuleReEnabled) {
         bridge.sendCommand('VSC_REINIT');
       }
     });

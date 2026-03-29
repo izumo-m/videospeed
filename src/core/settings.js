@@ -113,9 +113,29 @@ if (!window.VSC.VideoSpeedConfig) {
         this.settings.siteRules =
           storage.siteRules || window.VSC.Constants.DEFAULT_SETTINGS.siteRules;
 
+        // Match current URL against site rules to derive per-site default speed.
+        // matchSiteRule is exposed on window.VSC by inject-entry.js; guard for
+        // test environments where it may not be available.
+        if (window.VSC.matchSiteRule) {
+          const matched = window.VSC.matchSiteRule(this.settings.siteRules, window.location.href);
+          if (matched && matched.speed !== null && matched.speed !== undefined) {
+            this.settings.siteDefaultSpeed = matched.speed;
+            window.VSC.logger.info(
+              `Site rule matched: pattern="${matched.pattern}", speed=${matched.speed}`
+            );
+          }
+        }
+
         // Apply loaded settings
         this.settings.lastSpeed = Number(storage.lastSpeed);
         this.settings.rememberSpeed = Boolean(storage.rememberSpeed);
+
+        // When rememberSpeed is OFF, discard the stored lastSpeed so that
+        // site rule baselines (siteDefaultSpeed) win on fresh page loads
+        // instead of a stale speed from a previous session.
+        if (!this.settings.rememberSpeed) {
+          this.settings.lastSpeed = 1.0;
+        }
         this.settings.exclusiveKeys = Boolean(storage.exclusiveKeys);
         this.settings.audioBoolean = Boolean(storage.audioBoolean);
         this.settings.startHidden = Boolean(storage.startHidden);
