@@ -13,6 +13,7 @@ class SiteHandlerManager {
       window.VSC.FacebookHandler,
       window.VSC.AmazonHandler,
       window.VSC.AppleHandler,
+      window.VSC.DailymotionHandler,
     ];
   }
 
