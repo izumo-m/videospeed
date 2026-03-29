@@ -1,19 +1,11 @@
-# The science of accelerated playback
+# [Install from Chrome Web Store][chrome-web-store-link]
 
-| Chrome Extension                                                       | Downloads                                                                        | GitHub Release                                                 |
-| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| [![Chrome Web Store][chrome-web-store-version]][chrome-web-store-link] | [![Chrome Web Store Users][chrome-web-store-users-badge]][chrome-web-store-link] | [![GitHub release][github-release-badge]][github-release-link] |
+[![Chrome Web Store][chrome-web-store-version]][chrome-web-store-link] [![Chrome Web Store Users][chrome-web-store-users-badge]][chrome-web-store-link] [![Chrome Web Store Users][chrome-web-store-stars]][chrome-web-store-link]  
 
-<!-- Badges -->
+**Video Speed Controller** gives you fine-grained control over any HTML5 video
+or audio element, on any site.
 
-[chrome-web-store-version]: https://img.shields.io/chrome-web-store/v/nffaoalbilbmmfgbnbgppjihopabppdk?label=Chrome%20Web%20Store
-[chrome-web-store-users-badge]: https://img.shields.io/chrome-web-store/users/nffaoalbilbmmfgbnbgppjihopabppdk
-[github-release-badge]: https://img.shields.io/github/v/release/igrigorik/videospeed
-
-<!-- Links -->
-
-[chrome-web-store-link]: https://chromewebstore.google.com/detail/video-speed-controller/nffaoalbilbmmfgbnbgppjihopabppdk
-[github-release-link]: https://github.com/igrigorik/videospeed/releases
+## The science of accelerated playback
 
 **TL;DR** -- faster playback translates to better engagement and retention.
 
@@ -29,49 +21,43 @@ means higher engagement. With practice, many settle at 2x or above and find it
 [byu-study]: http://www.enounce.com/docs/BYUPaper020319.pdf
 [mit-study]: http://alumni.media.mit.edu/~barons/html/avios92.html#beasleyalteredspeech
 
-## Faster HTML5 video (and audio)
-
 HTML5 media elements expose a native playback rate API, but most players hide
-or artificially limit it. Speed adjustments should be effortless and frequent --
+or artificially limit it. Speed adjustments should be effortless and frequent:
 we don't read at a fixed pace, and we shouldn't watch at one either.
 
-**Video Speed Controller** gives you fine-grained control over any HTML5 video
-or audio element, on any site.
-
-### [Install from Chrome Web Store][chrome-web-store-link]
 
 ## Features
 
-- **Universal** -- works on any site with HTML5 media: YouTube, Netflix,
+- **Universal** - works on any site with HTML5 media: YouTube, Netflix,
   Coursera, podcasts, local files, etc.
-- **Video and audio** -- controls both `<video>` and `<audio>` elements.
-- **Fine-grained speed** -- 0.07x to 16x in configurable increments.
-- **Per-site speed rules** -- set a default playback speed for specific domains
+- **Video and audio** - controls both `<video>` and `<audio>` elements.
+- **Fine-grained speed** - 0.07x to 16x in configurable increments.
+- **Per-site speed rules** - set a default playback speed for specific domains
   (e.g., always 2x on lecture sites).
-- **Per-site disable** -- turn off the controller on sites where you don't
+- **Per-site disable** - turn off the controller on sites where you don't
   want it.
-- **Remember speed** -- optionally persist your last speed across sessions
+- **Remember speed** - optionally persist your last speed across sessions
   and tabs.
-- **Speed fightback** -- automatically re-applies your chosen speed when a
+- **Speed fightback** - automatically re-applies your chosen speed when a
   site's player tries to reset it.
-- **Draggable overlay** -- reposition the on-video speed indicator anywhere
+- **Draggable overlay** - reposition the on-video speed indicator anywhere
   you like.
-- **Fully customizable shortcuts** -- remap every key, add modifier combos
+- **Fully customizable shortcuts** - remap every key, add modifier combos
   (Ctrl, Shift, Alt), create multiple preferred-speed toggles.
-- **Custom controller CSS** -- style or reposition the overlay with your own
+- **Custom controller CSS** - style or reposition the overlay with your own
   CSS rules.
 
 ## Default keyboard shortcuts
 
-- **S** -- decrease playback speed
-- **D** -- increase playback speed
-- **R** -- reset playback speed to 1.0x
-- **Z** -- rewind video by 10 seconds
-- **X** -- advance video by 10 seconds
-- **G** -- toggle between current and preferred speed
-- **V** -- show/hide the controller
-- **M** -- set a marker at current position
-- **J** -- jump back to the previously set marker
+- **S** - decrease playback speed
+- **D** - increase playback speed
+- **R** - reset playback speed to 1.0x
+- **Z** - rewind video by 10 seconds
+- **X** - advance video by 10 seconds
+- **G** - toggle between current and preferred speed
+- **V** - show/hide the controller
+- **M** - set a marker at current position
+- **J** - jump back to the previously set marker
 
 All shortcuts are fully customizable in the extension's settings page. You can
 reassign keys, add modifier combinations, and define multiple preferred-speed
@@ -79,9 +65,14 @@ shortcuts with different values for quick toggling. Click **Add New** in
 settings to create additional bindings. Refresh the page after making changes
 for them to take effect.
 
-**Tip:** if a site captures one of your shortcut keys, try `Shift+<key>` --
-the extension listens for both cases as a built-in workaround.
-
 ## License
 
 (MIT License) - Copyright (c) 2014 Ilya Grigorik
+
+[chrome-web-store-version]: https://img.shields.io/chrome-web-store/v/nffaoalbilbmmfgbnbgppjihopabppdk?label=Chrome%20Web%20Store
+[chrome-web-store-users-badge]: https://img.shields.io/chrome-web-store/users/nffaoalbilbmmfgbnbgppjihopabppdk
+[chrome-web-store-stars]: https://img.shields.io/chrome-web-store/stars/nffaoalbilbmmfgbnbgppjihopabppdk
+[github-release-badge]: https://img.shields.io/github/v/release/igrigorik/videospeed
+
+[chrome-web-store-link]: https://chromewebstore.google.com/detail/video-speed-controller/nffaoalbilbmmfgbnbgppjihopabppdk
+[github-release-link]: https://github.com/igrigorik/videospeed/releases
