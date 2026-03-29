@@ -99,7 +99,7 @@ function findDroppedRules(css, parsedSheet) {
         const selector = block.split('{')[0].trim();
         dropped.push(selector || block.slice(0, 40));
       }
-    } catch (e) {
+    } catch {
       const selector = block.split('{')[0].trim();
       dropped.push(selector || block.slice(0, 40));
     }
@@ -226,7 +226,7 @@ let layoutMap = null;
         layoutMap = await navigator.keyboard.getLayoutMap();
       });
     }
-  } catch (e) {
+  } catch {
     // getLayoutMap not available — fallback chain handles it
   }
 })();
@@ -586,7 +586,7 @@ function validate() {
           throw 'empty regex';
         }
         new RegExp(regex, flags);
-      } catch (err) {
+      } catch {
         status.textContent = `Error: Invalid site rule regex: "${rule.pattern}". Unable to save.`;
         status.classList.add('show', 'error');
         valid = false;
@@ -877,7 +877,7 @@ async function handleImportFile(event) {
     try {
       imported = JSON.parse(text);
     } catch (e) {
-      throw new Error('File is not valid JSON');
+      throw new Error('File is not valid JSON', { cause: e });
     }
 
     if (!imported || typeof imported !== 'object' || !Array.isArray(imported.keyBindings)) {

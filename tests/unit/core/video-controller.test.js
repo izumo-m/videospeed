@@ -57,7 +57,6 @@ describe('VideoController', () => {
     const mockVideo = createMockVideo();
     mockDOM.container.appendChild(mockVideo);
 
-    // eslint-disable-next-line no-unused-vars -- constructor registers with stateManager
     const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
 
     expect(controller).toBeDefined();
@@ -95,8 +94,7 @@ describe('VideoController', () => {
     const mockVideo = createMockVideo();
     mockDOM.container.appendChild(mockVideo);
 
-    // eslint-disable-next-line no-unused-vars -- constructor registers with stateManager
-    const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
+    const _controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
 
     expect(mockVideo.playbackRate).toBe(2.0);
   });
@@ -111,7 +109,6 @@ describe('VideoController', () => {
     const mockVideo = createMockVideo();
     mockDOM.container.appendChild(mockVideo);
 
-    // eslint-disable-next-line no-unused-vars -- constructor registers with stateManager
     const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
 
     expect(controller.div).toBeDefined();
@@ -129,7 +126,6 @@ describe('VideoController', () => {
     const mockVideo = createMockVideo({ currentSrc: '' });
     mockDOM.container.appendChild(mockVideo);
 
-    // eslint-disable-next-line no-unused-vars -- constructor registers with stateManager
     const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
 
     expect(controller.div.classList.contains('vsc-nosource')).toBe(true);
@@ -146,7 +142,6 @@ describe('VideoController', () => {
     const mockVideo = createMockVideo();
     mockDOM.container.appendChild(mockVideo);
 
-    // eslint-disable-next-line no-unused-vars -- constructor registers with stateManager
     const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
 
     expect(controller.div.classList.contains('vsc-hidden')).toBe(true);
@@ -162,7 +157,6 @@ describe('VideoController', () => {
     const mockVideo = createMockVideo();
     mockDOM.container.appendChild(mockVideo);
 
-    // eslint-disable-next-line no-unused-vars -- constructor registers with stateManager
     const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
 
     // Verify setup
@@ -239,8 +233,7 @@ describe('VideoController', () => {
       return originalAdjustSpeed.call(this, video, value, options);
     };
 
-    // eslint-disable-next-line no-unused-vars -- constructor registers with stateManager
-    const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
+    const _controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
 
     // Should have called adjustSpeed with the stored speed
     expect(adjustSpeedCalled).toBe(true);
@@ -263,8 +256,7 @@ describe('VideoController', () => {
     });
     mockDOM.container.appendChild(mockVideo);
 
-    // eslint-disable-next-line no-unused-vars -- constructor registers with stateManager
-    const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
+    const _controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
 
     // Should remain at default speed when no stored speed exists
     expect(mockVideo.playbackRate).toBe(1.0);
@@ -282,8 +274,7 @@ describe('VideoController', () => {
     const mockVideo = createMockVideo({ playbackRate: 1.0 });
     mockDOM.container.appendChild(mockVideo);
 
-    // eslint-disable-next-line no-unused-vars -- constructor registers with stateManager
-    const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
+    const _controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
 
     // Should use global lastSpeed
     expect(mockVideo.playbackRate).toBe(2.25);
@@ -307,12 +298,9 @@ describe('VideoController', () => {
       return originalAddEventListener.call(this, type, listener, options);
     };
 
-    // eslint-disable-next-line no-unused-vars -- constructor registers with stateManager
-    const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
+    const _controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
 
     // Should have added media event listeners
-    // eslint-disable-next-line no-unused-vars
-    const listenerTypes = addedListeners.map((l) => l.type);
     expect(addedListeners.length > 0).toBe(true); // Should have added some listeners
 
     // Should have proper vsc structure with speedIndicator
@@ -345,8 +333,7 @@ describe('VideoController', () => {
       return originalAdjustSpeed.call(this, video, value, options);
     };
 
-    // eslint-disable-next-line no-unused-vars -- constructor registers with stateManager
-    const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
+    const _controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
 
     // Should have called adjustSpeed during initialization
     expect(adjustSpeedCalls.length > 0).toBe(true);

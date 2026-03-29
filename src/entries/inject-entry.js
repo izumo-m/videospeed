@@ -39,6 +39,7 @@ import '../site-handlers/youtube-handler.js';
 import '../site-handlers/facebook-handler.js';
 import '../site-handlers/amazon-handler.js';
 import '../site-handlers/apple-handler.js';
+import '../site-handlers/dailymotion-handler.js';
 import '../site-handlers/index.js';
 
 // Netflix-specific script

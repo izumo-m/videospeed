@@ -275,11 +275,11 @@ describe('EventManager', () => {
     await config.load();
     config.settings.lastSpeed = 2.0;
 
-    let externalAdjustCalled = false;
+    const externalAdjustSpy = vi.fn();
     const actionHandler = new window.VSC.ActionHandler(config, null);
     actionHandler.adjustSpeed = function (_video, _value, options = {}) {
       if (options.source === 'external') {
-        externalAdjustCalled = true;
+        externalAdjustSpy();
       }
     };
 
@@ -304,7 +304,7 @@ describe('EventManager', () => {
 
     eventManager.coolDown = false;
     mockVideo.playbackRate = 1.0;
-    externalAdjustCalled = false;
+    externalAdjustSpy.mockClear();
     eventManager.handleRateChange({
       composedPath: () => [mockVideo],
       target: mockVideo,
@@ -312,7 +312,7 @@ describe('EventManager', () => {
       stopImmediatePropagation: () => {},
     });
 
-    expect(externalAdjustCalled).toBe(true);
+    expect(externalAdjustSpy).toHaveBeenCalled();
   });
 
   it('fight count should reset after quiet period', async () => {
