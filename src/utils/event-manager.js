@@ -224,6 +224,14 @@ class EventManager {
       // Get the video element to restore authoritative speed
       const video = event.composedPath ? event.composedPath()[0] : event.target;
 
+      // Don't fight back during video initialization — the player's own setup
+      // fires ratechange at readyState=0; overwriting it can break the player.
+      if (video.readyState < 1) {
+        window.VSC.logger.debug('Skipping cooldown fight-back during video init (readyState < 1)');
+        event.stopImmediatePropagation();
+        return;
+      }
+
       // RESTORE our authoritative value since external change already happened
       if (video.vsc && this.config.settings.lastSpeed !== undefined) {
         const authoritativeSpeed = this.config.settings.lastSpeed;

@@ -43,88 +43,10 @@ class YouTubeHandler extends window.VSC.BaseSiteHandler {
     };
   }
 
-  /**
-   * Initialize YouTube-specific functionality
-   * @param {Document} document - Document object
-   */
-  initialize(document) {
-    super.initialize(document);
-
-    // Set up YouTube-specific CSS handling
-    this.setupYouTubeCSS();
-  }
-
-  /**
-   * Set up YouTube-specific CSS and autohide class forwarding.
-   * Watches for YouTube's .ytp-autohide class on the player element
-   * and forwards it as vsc-autohide on all vsc-controller elements
-   * within that player, so the shadow DOM CSS can handle visibility.
-   * @private
-   */
-  setupYouTubeCSS() {
-    this.setupAutohideForwarding();
-    window.VSC.logger.debug('YouTube CSS setup completed');
-  }
-
-  /**
-   * Observe .html5-video-player for ytp-autohide class changes
-   * and forward as vsc-autohide to controllers within the player.
-   * @private
-   */
-  setupAutohideForwarding() {
-    // Find the YouTube player element
-    const player = document.querySelector('.html5-video-player');
-    if (!player) {
-      window.VSC.logger.debug('YouTube player element not found, will retry on mutation');
-      // Retry when player appears in DOM
-      const bodyObserver = new MutationObserver(() => {
-        const p = document.querySelector('.html5-video-player');
-        if (p) {
-          bodyObserver.disconnect();
-          this.observePlayerAutohide(p);
-        }
-      });
-      bodyObserver.observe(document.body, { childList: true, subtree: true });
-      this.autohideBodyObserver = bodyObserver;
-      return;
-    }
-
-    this.observePlayerAutohide(player);
-  }
-
-  /**
-   * Set up MutationObserver on the player element for autohide forwarding.
-   * @param {HTMLElement} player - The .html5-video-player element
-   * @private
-   */
-  observePlayerAutohide(player) {
-    const syncAutohide = () => {
-      const hasAutohide = player.classList.contains('ytp-autohide');
-      const controllers = player.querySelectorAll('vsc-controller');
-      controllers.forEach((controller) => {
-        if (hasAutohide) {
-          controller.classList.add('vsc-autohide');
-        } else {
-          controller.classList.remove('vsc-autohide');
-        }
-      });
-    };
-
-    // Sync initial state
-    syncAutohide();
-
-    this.autohideObserver = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        if (mutation.attributeName === 'class') {
-          syncAutohide();
-          break;
-        }
-      }
-    });
-
-    this.autohideObserver.observe(player, { attributes: true, attributeFilter: ['class'] });
-    window.VSC.logger.debug('YouTube autohide forwarding observer set up');
-  }
+  // YouTube autohide is handled purely via CSS using :host-context() in
+  // shadow-dom.js — no MutationObserver needed. The shadow DOM rule
+  // :host-context(.ytp-autohide) matches when any ancestor of the
+  // <vsc-controller> host has the ytp-autohide class.
 
   /**
    * Check if video should be ignored on YouTube
@@ -175,7 +97,6 @@ class YouTubeHandler extends window.VSC.BaseSiteHandler {
 
     return videos;
   }
-
 }
 
 // Create singleton instance

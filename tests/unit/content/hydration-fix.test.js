@@ -59,38 +59,40 @@ describe('HydrationFix', () => {
     expect(window.VSC.initialized).toBe(true);
   });
 
-  it('CSS custom properties enable domain-specific styling without body modifications', () => {
-    // Record initial body state
+  it('CSS domain preprocessing avoids DOM modifications to <html>', () => {
+    // Record initial state of <html> and <body>
     const initialBodyClasses = [...document.body.classList];
     const initialBodyHTML = document.body.outerHTML;
+    const initialRootStyle = document.documentElement.getAttribute('style');
 
-    // Simulate the CSS custom property approach
+    // Simulate the preprocessing approach from content-entry.js:
+    // Domain selectors are resolved at injection time — no CSS variable on <html>.
     const hostname = 'chatgpt.com';
+    const rawCSS = `
+:root[style*='--vsc-domain: "chatgpt.com"'] vsc-controller { top: 0px; }
+:root[style*='--vsc-domain: "netflix.com"'] vsc-controller { top: 85px; }
+    `.trim();
 
-    // Store domain info in VSC global state
-    window.VSC.currentDomain = hostname;
+    // preprocessDomainCSS strips the attribute selector for matching domain,
+    // replaces with [data-vsc-never] for non-matching domains.
+    const processed = rawCSS.replace(
+      /\[style\*='--vsc-domain:\s*"([^"]+)"'\]/g,
+      (_match, domain) => (domain === hostname ? '' : '[data-vsc-never]')
+    );
 
-    // Set CSS custom property on document root (the new approach)
-    document.documentElement.style.setProperty('--vsc-domain', `"${hostname}"`);
+    // Matching domain: selector stripped → ":root vsc-controller { top: 0px; }"
+    expect(processed).toContain(':root vsc-controller { top: 0px; }');
+    // Non-matching domain: selector can never match
+    expect(processed).toContain(':root[data-vsc-never] vsc-controller { top: 85px; }');
 
-    // Verify no classes were added to body
+    // Verify NO modifications to <html> or <body>
     const finalBodyClasses = [...document.body.classList];
     const finalBodyHTML = document.body.outerHTML;
+    const finalRootStyle = document.documentElement.getAttribute('style');
 
     expect(initialBodyClasses).toEqual(finalBodyClasses);
-
     expect(initialBodyHTML).toBe(finalBodyHTML);
-
-    // Verify CSS custom property was set
-    const domainProperty = document.documentElement.style.getPropertyValue('--vsc-domain');
-    expect(domainProperty).toBe('"chatgpt.com"');
-
-    // Verify the CSS selector would match (simulating CSS behavior)
-    const rootStyle = document.documentElement.getAttribute('style');
-    expect(rootStyle && rootStyle.includes('--vsc-domain: "chatgpt.com"')).toBe(true);
-
-    // Verify domain is tracked in VSC state
-    expect(window.VSC.currentDomain).toBe('chatgpt.com');
+    expect(initialRootStyle).toBe(finalRootStyle);
   });
 
   it('Simple boolean flag prevents double initialization', () => {

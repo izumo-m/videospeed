@@ -61,7 +61,7 @@ describe('Inject', () => {
    * This simulates shadow DOM scenarios where parentElement is undefined
    */
   function createVideoWithoutParentElement() {
-    const video = createMockVideo();
+    const video = createMockVideo({ readyState: 4 });
     const parentNode = document.createElement('div');
 
     // Simulate shadow DOM scenario where parentElement is undefined
@@ -104,7 +104,7 @@ describe('Inject', () => {
     extension = window.VSC_controller;
     expect(extension).toBeDefined();
 
-    const video = createMockVideo();
+    const video = createMockVideo({ readyState: 4 });
     const parentElement = document.createElement('div');
     const parentNode = document.createElement('span');
 
@@ -133,11 +133,70 @@ describe('Inject', () => {
     expect(video.vsc.parent).toBe(parentElement);
   });
 
+  it('onVideoFound defers controller when readyState < 2 and video has src', () => {
+    extension = window.VSC_controller;
+    expect(extension).toBeDefined();
+
+    // readyState=1 with a src → should defer, not attach immediately
+    const video = createMockVideo({ readyState: 1 });
+    const parent = document.createElement('div');
+
+    Object.defineProperty(video, 'isConnected', {
+      value: true,
+      writable: false,
+      configurable: true,
+    });
+
+    extension.onVideoFound(video, parent);
+
+    // Controller should NOT be attached yet — waiting for loadeddata
+    expect(video.vsc).toBeUndefined();
+  });
+
+  it('onVideoFound attaches immediately when readyState >= 2', () => {
+    extension = window.VSC_controller;
+    expect(extension).toBeDefined();
+
+    const video = createMockVideo({ readyState: 4 });
+    const parent = document.createElement('div');
+
+    Object.defineProperty(video, 'isConnected', {
+      value: true,
+      writable: false,
+      configurable: true,
+    });
+
+    extension.onVideoFound(video, parent);
+
+    // Controller should be attached immediately
+    expect(video.vsc).toBeDefined();
+    expect(video.vsc instanceof window.VSC.VideoController).toBe(true);
+  });
+
+  it('onVideoFound attaches immediately when video has no src (no-source placeholder)', () => {
+    extension = window.VSC_controller;
+    expect(extension).toBeDefined();
+
+    // readyState=0, no src → should attach immediately (no loadeddata to wait for)
+    const video = createMockVideo({ readyState: 0, currentSrc: '' });
+    const parent = document.createElement('div');
+
+    Object.defineProperty(video, 'isConnected', {
+      value: true,
+      writable: false,
+      configurable: true,
+    });
+
+    extension.onVideoFound(video, parent);
+
+    expect(video.vsc).toBeDefined();
+  });
+
   it('onVideoFound should handle video with neither parentElement nor parentNode', async () => {
     extension = window.VSC_controller;
     expect(extension).toBeDefined();
 
-    const video = createMockVideo();
+    const video = createMockVideo({ readyState: 4 });
     const fallbackParent = document.createElement('div');
 
     Object.defineProperty(video, 'parentElement', {

@@ -1,6 +1,6 @@
 /**
  * Video Controller class for managing individual video elements
- * 
+ *
  */
 
 window.VSC = window.VSC || {};
@@ -52,7 +52,11 @@ class VideoController {
   }
 
   /**
-   * Initialize video speed based on settings
+   * Initialize video speed based on settings.
+   *
+   * Uses source:'init' so setSpeed skips the lastSpeed update — during init
+   * we don't want to arm fight-back with a stale/default value that could
+   * conflict with the player's own initialization sequence.
    * @private
    */
   initializeSpeed() {
@@ -60,10 +64,23 @@ class VideoController {
 
     window.VSC.logger.debug(`Setting initial playbackRate to: ${targetSpeed}`);
 
-    // Use adjustSpeed for initial speed setting to ensure consistency
-    if (this.actionHandler && targetSpeed !== this.video.playbackRate) {
-      window.VSC.logger.debug('Setting initial speed via adjustSpeed');
-      this.actionHandler.adjustSpeed(this.video, targetSpeed, { source: 'internal' });
+    if (!this.actionHandler || targetSpeed === this.video.playbackRate) {
+      return;
+    }
+
+    // Defer until metadata is loaded — setting playbackRate before the player
+    // has initialized can race with the site's own init sequence.
+    if (this.video.readyState < 1) {
+      window.VSC.logger.debug('Deferring initializeSpeed until loadedmetadata');
+      const handler = () => {
+        this.video.removeEventListener('loadedmetadata', handler);
+        if (targetSpeed !== this.video.playbackRate) {
+          this.actionHandler.adjustSpeed(this.video, targetSpeed, { source: 'init' });
+        }
+      };
+      this.video.addEventListener('loadedmetadata', handler);
+    } else {
+      this.actionHandler.adjustSpeed(this.video, targetSpeed, { source: 'init' });
     }
   }
 
@@ -224,15 +241,20 @@ class VideoController {
 
     // Bind event handlers
     this.handlePlay = mediaEventAction.bind(this);
-    this.handleSeek = mediaEventAction.bind(this);
+    // Don't restore speed on seeked if the video hasn't loaded data yet —
+    // the player may still be initializing.
+    this.handleSeek = (event) => {
+      if (event.target.readyState < 2) {
+        return;
+      }
+      mediaEventAction.call(this, event);
+    };
 
     // Add essential event listeners for speed restoration
     this.video.addEventListener('play', this.handlePlay);
     this.video.addEventListener('seeked', this.handleSeek);
 
-    window.VSC.logger.debug(
-      'Added essential media event handlers: play, seeked'
-    );
+    window.VSC.logger.debug('Added essential media event handlers: play, seeked');
   }
 
   /**

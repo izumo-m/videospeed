@@ -467,7 +467,9 @@ class ActionHandler {
     //    The cooldown handler reads lastSpeed as the "authoritative" speed
     //    to restore during fight-back. If lastSpeed is stale, the handler
     //    undoes the very change we're making.
-    if (source !== 'external') {
+    //    'init' source: skip — don't arm fight-back with the initialization
+    //    default; let the first real user/site action establish authority.
+    if (source !== 'external' && source !== 'init') {
       this.config.settings.lastSpeed = numericSpeed;
     }
 

@@ -8,8 +8,26 @@ import { isBlacklisted } from '../utils/blacklist.js';
 import { matchSiteRule } from '../utils/site-pattern.js';
 import { DEFAULT_CONTROLLER_CSS } from '../styles/controller-css-defaults.js';
 
+/**
+ * Resolve domain-based CSS selectors at injection time so we never touch <html>.
+ * Replaces :root[style*='--vsc-domain: "DOMAIN"'] attribute selectors:
+ *   - matching domain → selector stripped (rule applies unconditionally)
+ *   - non-matching domain → replaced with [data-vsc-never] (never matches)
+ */
+function preprocessDomainCSS(cssText, hostname) {
+  return cssText.replace(/\[style\*='--vsc-domain:\s*"([^"]+)"'\]/g, (_match, domain) =>
+    domain === hostname ? '' : '[data-vsc-never]'
+  );
+}
+
 async function init() {
   try {
+    // Skip about:blank frames — they share the parent window and our injection
+    // would either double-inject or break the parent's running instance.
+    if (location.href === 'about:blank') {
+      return;
+    }
+
     // Guard against double-injection. Chrome can re-run content scripts on
     // extension update, service worker restart, or in about:blank frames that
     // share the parent window. Re-injecting would overwrite all window.VSC.*
@@ -43,16 +61,17 @@ async function init() {
     delete settings.controllerCSS;
 
     // Bridge settings to page context via DOM (only synchronous path between Chrome's isolated worlds)
-    // Script elements with type="application/json" are inert, avoiding site interference and CSP issues
+    // Script elements with type="application/json" are inert, avoiding site interference and CSP issues.
     const settingsElement = document.createElement('script');
     settingsElement.id = 'vsc-settings-data';
     settingsElement.type = 'application/json';
     settingsElement.textContent = JSON.stringify(settings);
     (document.head || document.documentElement).appendChild(settingsElement);
 
-    // Set --vsc-domain for CSS domain-based rules (before CSS injection)
+    // Preprocess domain-based CSS rules at injection time instead of setting
+    // --vsc-domain on <html>. Avoids mutating <html> style attribute which
+    // can trigger framework MutationObservers on some sites.
     const hostname = location.hostname.replace(/^www\./, '');
-    document.documentElement.style.setProperty('--vsc-domain', `"${hostname}"`);
 
     // Inject controller CSS BEFORE inject.js — guarantees positioning rules
     // are in the DOM before any controller elements are created.
@@ -60,7 +79,7 @@ async function init() {
     // This adds site-specific overrides that layer on top.
     const styleEl = document.createElement('style');
     styleEl.id = 'vsc-controller-css';
-    styleEl.textContent = controllerCSS;
+    styleEl.textContent = preprocessDomainCSS(controllerCSS, hostname);
     (document.head || document.documentElement).appendChild(styleEl);
 
     // Inject the bundled page script containing all VSC modules
@@ -81,7 +100,7 @@ async function init() {
       if (changes.controllerCSS?.newValue !== undefined) {
         const el = document.getElementById('vsc-controller-css');
         if (el) {
-          el.textContent = changes.controllerCSS.newValue;
+          el.textContent = preprocessDomainCSS(changes.controllerCSS.newValue, hostname);
         }
       }
 

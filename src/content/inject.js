@@ -96,10 +96,9 @@ class VideoSpeedExtension {
    * @param {Document} document - Document to defer operations for
    */
   deferExpensiveOperations(document) {
-    // Use requestIdleCallback with a longer timeout to avoid blocking critical page load
     const callback = () => {
       try {
-        // Start mutation observer after page load is complete
+        // Start mutation observer — catches dynamically added media elements
         if (this.mutationObserver) {
           this.mutationObserver.start(document);
           this.logger.debug('Mutation observer started for document');
@@ -112,11 +111,9 @@ class VideoSpeedExtension {
       }
     };
 
-    // Use requestIdleCallback if available, with reasonable timeout
     if (window.requestIdleCallback) {
-      requestIdleCallback(callback, { timeout: 2000 });
+      requestIdleCallback(callback);
     } else {
-      // Fallback for browsers without requestIdleCallback
       setTimeout(callback, 100);
     }
   }
@@ -149,9 +146,8 @@ class VideoSpeedExtension {
       }
     };
 
-    // Use requestIdleCallback for the scan as well
     if (window.requestIdleCallback) {
-      requestIdleCallback(performChunkedScan, { timeout: 3000 });
+      requestIdleCallback(performChunkedScan);
     } else {
       setTimeout(performChunkedScan, 200);
     }
@@ -255,6 +251,21 @@ class VideoSpeedExtension {
 
       if (video.vsc) {
         this.logger.debug('Video already has controller attached');
+        return;
+      }
+
+      // Defer controller creation until the video has enough data.
+      // Inserting <vsc-controller> into a player container while the site's
+      // framework is still initializing can trigger internal MutationObservers.
+      // readyState >= 2 (HAVE_CURRENT_DATA) signals the player has settled.
+      if (video.readyState < 2 && (video.src || video.currentSrc)) {
+        this.logger.debug(
+          'Deferring controller until loadeddata (readyState=%d)',
+          video.readyState
+        );
+        video.addEventListener('loadeddata', () => this.onVideoFound(video, parent), {
+          once: true,
+        });
         return;
       }
 
