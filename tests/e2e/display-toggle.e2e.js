@@ -1,8 +1,8 @@
 /**
- * E2E test for display toggle functionality
+ * E2E test for display toggle functionality (V key show/hide).
  */
 
-import { launchChromeWithExtension, sleep } from './e2e-utils.js';
+import { launchChromeWithExtension, sleep, waitForController } from './e2e-utils.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -15,30 +15,25 @@ async function testDisplayToggle() {
   const { browser, page } = await launchChromeWithExtension();
 
   try {
-    // Load test page with video
     const testPagePath = `file://${path.join(__dirname, 'test-video.html')}`;
-    await page.goto(testPagePath, { waitUntil: 'domcontentloaded' });
+    await page.goto(testPagePath, { waitUntil: 'networkidle2' });
 
-    // Wait for extension to load
-    await sleep(2000);
+    // Wait for extension controller to be fully attached (not raw sleep)
+    const found = await waitForController(page, 15000);
+    if (!found) {
+      throw new Error('Controller never appeared');
+    }
 
     // Verify controller is initially visible
     const controllerVisible = await page.evaluate(() => {
-      const controllers = document.querySelectorAll('.vsc-controller');
-      if (controllers.length === 0) {
+      const controller = document.querySelector('.vsc-controller');
+      if (!controller) {
         return { success: false, message: 'No controller found' };
       }
 
-      const controller = controllers[0];
-      const computedStyle = window.getComputedStyle(controller);
-      const isVisible =
-        computedStyle.display !== 'none' &&
-        computedStyle.visibility !== 'hidden' &&
-        !controller.classList.contains('vsc-hidden');
-
       return {
-        success: isVisible,
-        message: `Controller initial state - Classes: ${controller.className}, Display: ${computedStyle.display}, Visibility: ${computedStyle.visibility}`,
+        success: !controller.classList.contains('vsc-hidden'),
+        message: `Classes: ${controller.className}`,
       };
     });
 
@@ -50,20 +45,13 @@ async function testDisplayToggle() {
 
     // Press 'V' to hide controller
     await page.keyboard.press('v');
-    await sleep(500);
+    await sleep(300);
 
-    // Verify controller is hidden
     const controllerHidden = await page.evaluate(() => {
       const controller = document.querySelector('.vsc-controller');
-      const computedStyle = window.getComputedStyle(controller);
-      const isHidden =
-        computedStyle.display === 'none' ||
-        computedStyle.visibility === 'hidden' ||
-        controller.classList.contains('vsc-hidden');
-
       return {
-        success: isHidden,
-        message: `After first toggle - Classes: ${controller.className}, Display: ${computedStyle.display}, Visibility: ${computedStyle.visibility}`,
+        success: controller.classList.contains('vsc-hidden'),
+        message: `Classes: ${controller.className}`,
       };
     });
 
@@ -75,20 +63,13 @@ async function testDisplayToggle() {
 
     // Press 'V' again to show controller
     await page.keyboard.press('v');
-    await sleep(500);
+    await sleep(300);
 
-    // Verify controller is visible again
     const controllerVisibleAgain = await page.evaluate(() => {
       const controller = document.querySelector('.vsc-controller');
-      const computedStyle = window.getComputedStyle(controller);
-      const isVisible =
-        computedStyle.display !== 'none' &&
-        computedStyle.visibility !== 'hidden' &&
-        !controller.classList.contains('vsc-hidden');
-
       return {
-        success: isVisible,
-        message: `After second toggle - Classes: ${controller.className}, Display: ${computedStyle.display}, Visibility: ${computedStyle.visibility}`,
+        success: !controller.classList.contains('vsc-hidden'),
+        message: `Classes: ${controller.className}`,
       };
     });
 
@@ -99,26 +80,6 @@ async function testDisplayToggle() {
     }
 
     console.log('✅ Controller visible again after pressing V');
-
-    // Test console logging
-    const consoleLogs = await page.evaluate(() => {
-      // Check if display action was logged
-      const logs = [];
-      const originalLog = console.log;
-      console.log = (...args) => {
-        logs.push(args.join(' '));
-        originalLog.apply(console, args);
-      };
-
-      // Trigger display action
-      const event = new KeyboardEvent('keydown', { keyCode: 86 });
-      document.dispatchEvent(event);
-
-      return logs;
-    });
-
-    console.log('📋 Console logs:', consoleLogs);
-
     console.log('✅ Display toggle test passed!');
     return { success: true };
   } catch (error) {
