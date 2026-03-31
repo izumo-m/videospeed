@@ -1,6 +1,5 @@
 /**
- * Video Speed Controller - Main Content Script
- * Modular architecture using global variables loaded via script array
+ * Video Speed Controller — Main Content Script
  */
 
 class VideoSpeedExtension {
@@ -34,28 +33,14 @@ class VideoSpeedExtension {
       this.config = window.VSC.videoSpeedConfig;
       await this.config.load();
 
-      // Controller CSS and --vsc-domain are already injected by content-entry.js
-      // (before inject.js loads) for timing safety. For the main document, no
-      // action needed here. For iframe documents, see initializeDocument().
+      if (this.config.settings._abort) {
+        this.logger.debug('Extension disabled on this site — aborting init');
+        return;
+      }
 
-      // Initialize site handler
-      this.siteHandlerManager.initialize(document);
-
-      // Create action handler and event manager
-      this.eventManager = new this.EventManager(this.config, null);
-      this.actionHandler = new this.ActionHandler(this.config, this.eventManager);
-      this.eventManager.actionHandler = this.actionHandler; // Set circular reference
-
-      // Set up observers
-      this.setupObservers();
-
-      // Initialize when document is ready
-      this.initializeWhenReady(document, (doc) => {
-        this.initializeDocument(doc);
-      });
-
-      this.logger.info('Video Speed Controller initialized successfully');
-      this.initialized = true;
+      // Defer DOM work so the page's framework (e.g. YouTube's Polymer)
+      // finishes init before we touch anything.
+      this.deferDOMWork(document);
     } catch (error) {
       this.logger.error(`Failed to initialize Video Speed Controller: ${error.message}`);
       this.logger.error(`Error stack: ${error.stack}`);
@@ -73,16 +58,7 @@ class VideoSpeedExtension {
       }
 
       window.VSC.initialized = true;
-
-      // Main document: --vsc-domain and controller CSS already injected by
-      // content-entry.js. For iframe documents, apply here.
-      if (document !== window.document) {
-        this.applyDomainStyles(document);
-      }
       this.eventManager.setupEventListeners(document);
-      if (document !== window.document) {
-        this.setupDocumentCSS(document);
-      }
 
       this.deferExpensiveOperations(document);
       this.logger.debug('Document initialization completed');
@@ -180,45 +156,76 @@ class VideoSpeedExtension {
   }
 
   /**
-   * Apply domain-specific styles using CSS custom properties
-   * Sets CSS custom property on :root to enable CSS-based domain targeting
-   * @param {Document} document - Document to apply styles to
+   * Defer DOM work via requestIdleCallback to yield to site frameworks
+   * before injecting CSS, controllers, and observers.
    */
-  applyDomainStyles(document) {
-    try {
-      // Strip www. prefix so CSS selectors only need the bare domain.
-      // e.g. "www.youtube.com" → "youtube.com"
-      const hostname = window.location.hostname.replace(/^www\./, '');
-      if (document.documentElement) {
-        document.documentElement.style.setProperty('--vsc-domain', `"${hostname}"`);
-      }
-    } catch (error) {
-      this.logger.error(`Failed to apply domain styles: ${error.message}`);
+  deferDOMWork(document) {
+    const doWork = () => {
+      this.injectControllerCSS();
+      this.setupCSSLiveUpdates();
+      this.siteHandlerManager.initialize(document);
+
+      this.eventManager = new this.EventManager(this.config, null);
+      this.actionHandler = new this.ActionHandler(this.config, this.eventManager);
+      this.eventManager.actionHandler = this.actionHandler;
+
+      this.setupObservers();
+
+      this.initializeWhenReady(document, (doc) => {
+        this.initializeDocument(doc);
+      });
+
+      this.logger.info('Video Speed Controller initialized successfully');
+      this.initialized = true;
+    };
+
+    if (window.requestIdleCallback) {
+      requestIdleCallback(doWork);
+    } else {
+      setTimeout(doWork, 0);
     }
   }
 
   /**
-   * Inject controller CSS into an iframe document.
-   * Main document CSS is handled by content-entry.js for timing safety.
-   * @param {Document} doc - iframe document
+   * Resolve domain-based CSS selectors for the current hostname.
+   * Matching domains: selector stripped (rule applies). Non-matching: [data-vsc-never].
    */
-  injectControllerCSS(doc) {
+  preprocessDomainCSS(css) {
+    const hostname = location.hostname.replace(/^www\./, '');
+    return css.replace(/\[style\*='--vsc-domain:\s*"([^"]+)"'\]/g, (_match, domain) =>
+      domain === hostname ? '' : '[data-vsc-never]'
+    );
+  }
+
+  /**
+   * Inject controller CSS via adoptedStyleSheets — zero DOM mutations.
+   * Creating <style> elements in <head> triggers Polymer's internal
+   * MutationObservers on YouTube, crashing the player ~30% of loads.
+   * adoptedStyleSheets is a pure CSSOM API (Chrome 73+, our min is 111).
+   */
+  injectControllerCSS() {
     try {
-      // content-entry.js already injects the authoritative version (from
-      // chrome.storage, which includes user customizations). Skip if present
-      // to avoid overwriting with defaults from the page-context bridge
-      // (which intentionally excludes controllerCSS).
-      if (doc.getElementById('vsc-controller-css')) {
+      if (this._controllerSheet) {
         return;
       }
-      const css = this.config.settings.controllerCSS ?? window.VSC.Constants.DEFAULT_CONTROLLER_CSS;
-      const style = doc.createElement('style');
-      style.id = 'vsc-controller-css';
-      style.textContent = css;
-      (doc.head || doc.documentElement).appendChild(style);
+      const css = this.config.settings.controllerCSS || window.VSC.Constants.DEFAULT_CONTROLLER_CSS;
+      this._controllerSheet = new CSSStyleSheet();
+      this._controllerSheet.replaceSync(this.preprocessDomainCSS(css));
+      document.adoptedStyleSheets = [...document.adoptedStyleSheets, this._controllerSheet];
     } catch (error) {
       this.logger.error(`Failed to inject controller CSS: ${error.message}`);
     }
+  }
+
+  /** Listen for live controllerCSS updates from the options page. */
+  setupCSSLiveUpdates() {
+    document.documentElement.addEventListener('VSC_STORAGE_CHANGED', (e) => {
+      if (e.detail?.controllerCSS?.newValue !== undefined && this._controllerSheet) {
+        this._controllerSheet.replaceSync(
+          this.preprocessDomainCSS(e.detail.controllerCSS.newValue)
+        );
+      }
+    });
   }
 
   /**
@@ -254,10 +261,8 @@ class VideoSpeedExtension {
         return;
       }
 
-      // Defer controller creation until the video has enough data.
-      // Inserting <vsc-controller> into a player container while the site's
-      // framework is still initializing can trigger internal MutationObservers.
-      // readyState >= 2 (HAVE_CURRENT_DATA) signals the player has settled.
+      // Defer until readyState >= HAVE_CURRENT_DATA — inserting a controller
+      // too early can trigger the site's internal MutationObservers.
       if (video.readyState < 2 && (video.src || video.currentSrc)) {
         this.logger.debug(
           'Deferring controller until loadeddata (readyState=%d)',
@@ -326,6 +331,14 @@ class VideoSpeedExtension {
       this.siteHandlerManager.cleanup();
     }
 
+    // Remove adopted controller CSS
+    if (this._controllerSheet && document.adoptedStyleSheets) {
+      document.adoptedStyleSheets = document.adoptedStyleSheets.filter(
+        (s) => s !== this._controllerSheet
+      );
+      this._controllerSheet = null;
+    }
+
     this.actionHandler = null;
     this.mediaObserver = null;
     this.initialized = false;
@@ -346,37 +359,13 @@ class VideoSpeedExtension {
       this.logger.error(`Failed to remove video controller: ${error.message}`);
     }
   }
-
-  /**
-   * Set up CSS for iframe documents
-   * @param {Document} document - Document to set up CSS for
-   */
-  setupDocumentCSS(document) {
-    // Inject the manifest CSS (non-positioning fixes) via <link>
-    const link = document.createElement('link');
-    link.href =
-      typeof chrome !== 'undefined' && chrome.runtime
-        ? chrome.runtime.getURL('src/styles/inject.css')
-        : '/src/styles/inject.css';
-    link.type = 'text/css';
-    link.rel = 'stylesheet';
-    (document.head || document.documentElement).appendChild(link);
-
-    // Inject controller CSS (no live-update for iframes — update on refresh)
-    this.injectControllerCSS(document);
-
-    this.logger.debug('CSS injected into iframe document');
-  }
 }
 
-// Initialize extension and message handlers in an IIFE to avoid global scope pollution
 (function () {
-  // Create and initialize extension instance
   const extension = new VideoSpeedExtension();
 
-  // Message handler for popup communication via bridge
-  // Listen for messages from content script bridge
-  window.addEventListener('VSC_MESSAGE', (event) => {
+  // Lifecycle commands from bridge (popup, background, storage changes)
+  document.documentElement.addEventListener('VSC_MESSAGE', (event) => {
     const message = event.detail;
 
     // Handle namespaced VSC message types
@@ -387,7 +376,8 @@ class VideoSpeedExtension {
       switch (message.type) {
         case window.VSC.Constants.MESSAGE_TYPES.SET_SPEED:
           if (message.payload && typeof message.payload.speed === 'number') {
-            const targetSpeed = message.payload.speed;
+            const { MIN, MAX } = window.VSC.Constants.SPEED_LIMITS;
+            const targetSpeed = Math.min(Math.max(message.payload.speed, MIN), MAX);
             videos.forEach((video) => {
               if (video.vsc) {
                 extension.actionHandler.adjustSpeed(video, targetSpeed);
@@ -411,7 +401,8 @@ class VideoSpeedExtension {
                 extension.actionHandler.adjustSpeed(video, delta, { relative: true });
               } else {
                 // Fallback for videos without controller
-                const newSpeed = Math.min(Math.max(video.playbackRate + delta, 0.07), 16);
+                const { MIN: sMin, MAX: sMax } = window.VSC.Constants.SPEED_LIMITS;
+                const newSpeed = Math.min(Math.max(video.playbackRate + delta, sMin), sMax);
                 video.playbackRate = newSpeed;
               }
             });

@@ -1,11 +1,10 @@
 /*
  * inject.css — Loaded via manifest content_scripts.css (before any JS runs).
  *
- * The base vsc-controller rule MUST stay here for timing safety: manifest CSS
- * is guaranteed available before the first controller element is created.
- * Site-specific overrides are in the user-editable "Controller CSS" setting
- * (src/styles/controller-css-defaults.js), injected dynamically by
- * content-entry.js before inject.js loads.
+ * Base vsc-controller rules live here for timing safety: manifest CSS is
+ * available before the first controller element is created. Site-specific
+ * overrides are in the user-editable "Controller CSS" setting
+ * (src/styles/controller-css-defaults.js), injected as a <style> by inject.js.
  */
 vsc-controller {
   /* Out of normal flow by default; site overrides change to relative */

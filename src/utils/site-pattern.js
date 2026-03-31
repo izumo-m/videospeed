@@ -86,7 +86,6 @@ export function matchSiteRule(rules, href) {
  * @returns {boolean} true if any pattern matches
  */
 // Expose on window.VSC for page-context consumers (settings.js).
-// The ES exports are still used by content-entry.js (content-script context).
 window.VSC = window.VSC || {};
 window.VSC.matchSiteRule = matchSiteRule;
 

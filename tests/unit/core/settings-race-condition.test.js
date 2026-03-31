@@ -15,6 +15,10 @@ import {
   simulateExternalStorageWrite,
 } from '../../helpers/chrome-mock.js';
 import { vi } from 'vitest';
+
+// These tests run with chrome.storage mock installed (extension context),
+// simulating options page / popup behavior where all settings keys are
+// readable and writable via chrome.storage.sync.
 describe('SettingsRaceCondition', () => {
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -174,7 +178,7 @@ describe('SettingsRaceCondition', () => {
 
     await vi.advanceTimersByTimeAsync(50);
 
-    // BOTH should be preserved
+    // BOTH should be preserved in storage
     expect(storage.controllerOpacity).toBe(0.9);
     expect(storage.startHidden).toBe(true);
   });

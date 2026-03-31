@@ -65,7 +65,7 @@ describe('HydrationFix', () => {
     const initialBodyHTML = document.body.outerHTML;
     const initialRootStyle = document.documentElement.getAttribute('style');
 
-    // Simulate the preprocessing approach from content-entry.js:
+    // Simulate the preprocessing approach from content-bridge.js:
     // Domain selectors are resolved at injection time — no CSS variable on <html>.
     const hostname = 'chatgpt.com';
     const rawCSS = `

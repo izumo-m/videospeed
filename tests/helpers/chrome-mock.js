@@ -166,8 +166,13 @@ export function simulateExternalStorageWrite(items) {
   }
   Object.assign(mockStorage, items);
 
-  // Fire listeners synchronously for test determinism
+  // Fire chrome.storage.onChanged listeners (for bridge-level tests)
   for (const listener of onChangedListeners) {
     listener(changes, 'sync');
   }
+
+  // Also fire VSC_STORAGE_CHANGED CustomEvent (for MAIN world StorageManager)
+  document.documentElement.dispatchEvent(
+    new CustomEvent('VSC_STORAGE_CHANGED', { detail: changes })
+  );
 }

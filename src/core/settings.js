@@ -73,8 +73,13 @@ if (!window.VSC.VideoSpeedConfig) {
       try {
         // Use StorageManager which handles both contexts automatically
         const storage = await window.VSC.StorageManager.get(window.VSC.Constants.DEFAULT_SETTINGS);
-        // Storage read complete — save() is now safe (we have real data, not defaults).
-        // Set before keyBindings init below, which calls save() internally.
+
+        // null = bridge signaled abort (site disabled/blacklisted)
+        if (storage === null) {
+          this.settings._abort = true;
+          return;
+        }
+
         this._loaded = true;
 
         // Handle key bindings migration/initialization

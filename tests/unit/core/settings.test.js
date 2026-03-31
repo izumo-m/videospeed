@@ -10,18 +10,14 @@ import {
 } from '../../helpers/chrome-mock.js';
 import { vi } from 'vitest';
 
-// Load all required modules
+// These tests run with chrome.storage mock (extension context).
+// StorageManager detects chrome.storage and uses it directly.
 
 describe('Settings', () => {
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     installChromeMock();
     resetMockStorage();
-
-    // Clear any injected settings for clean tests
-    if (window.VSC && window.VSC.StorageManager) {
-      window.VSC.StorageManager._injectedSettings = null;
-    }
   });
 
   afterEach(() => {

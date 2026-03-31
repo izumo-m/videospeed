@@ -1,17 +1,13 @@
 /**
  * Default CSS for controller site-specific positioning overrides.
  *
- * Shared by content-entry.js (injects before inject.js for timing safety)
- * and constants.js (exposes on window.VSC.Constants for options page).
+ * Base vsc-controller rule lives in inject.css (manifest-loaded).
+ * This module contains site-specific overrides that layer on top.
  *
- * The BASE vsc-controller rule (position:absolute, visibility, etc.) lives
- * in inject.css — loaded via manifest before any JS runs. This module
- * contains only site-specific overrides that layer on top.
- *
- * Domain-based rules use the --vsc-domain CSS variable set on :root.
- * The variable holds the bare hostname (www. stripped).
- *
- * Pure ES module — no window/DOM dependencies.
+ * Domain selectors use :root[style*='--vsc-domain: "DOMAIN"'] syntax.
+ * At injection time, matching domains get the selector stripped (rule
+ * applies unconditionally); non-matching get [data-vsc-never] (never
+ * matches). No CSS variable is actually set on :root.
  */
 
 export const DEFAULT_CONTROLLER_CSS = `/* === Domain-based rules (stable — hostname only) === */

@@ -71,7 +71,7 @@ async function build() {
     const esbuildConfig = {
       ...common,
       entryPoints: {
-        'content': 'src/entries/content-entry.js',
+        'content-bridge': 'src/entries/content-bridge.js',
         'inject': 'src/entries/inject-entry.js',
         'background': 'src/background.js',
         'ui/popup/popup': 'src/ui/popup/popup.js',
