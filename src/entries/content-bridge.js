@@ -37,7 +37,11 @@ async function init() {
     const settings = await chrome.storage.sync.get(null);
 
     const disabled = settings.enabled === false;
-    const blacklisted = isBlacklisted(settings.blacklist, location.href);
+    // Legacy blacklist: only checked when siteRules hasn't been initialized yet
+    // (pre-migration devices). Once migration runs, siteRules is the source of
+    // truth. The blacklist is preserved in storage for sync compat with older
+    // extension versions but must not shadow siteRules edits.
+    const blacklisted = !settings.siteRules && isBlacklisted(settings.blacklist, location.href);
     const siteRuleMatch = matchSiteRule(settings.siteRules, location.href);
     const siteDisabled = siteRuleMatch && siteRuleMatch.enabled === false;
     const shouldAbort = disabled || blacklisted || siteDisabled;
@@ -79,8 +83,11 @@ async function init() {
 
       // Lifecycle checks FIRST — teardown/reinit before relaying changes
       const disabled = 'enabled' in changes && changes.enabled.newValue === false;
+      // Only check legacy blacklist changes on pre-migration devices (no siteRules yet)
       const blacklisted =
-        'blacklist' in changes && isBlacklisted(changes.blacklist.newValue, location.href);
+        'blacklist' in changes &&
+        !changes.siteRules?.newValue &&
+        isBlacklisted(changes.blacklist.newValue, location.href);
       const siteRuleDisabled =
         'siteRules' in changes &&
         (() => {

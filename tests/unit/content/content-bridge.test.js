@@ -158,6 +158,22 @@ describe('content-bridge', () => {
       expect(events[0].detail.abort).toBe(true);
     });
 
+    it('blacklist is ignored when siteRules exists (post-migration)', async () => {
+      // Regression: the settings migration preserves the legacy blacklist string
+      // in storage for sync compat but siteRules is the source of truth post-migration.
+      // A site removed from siteRules must not remain blocked by the stale blacklist.
+      getMockStorage().blacklist = 'localhost'; // matches jsdom URL
+      getMockStorage().siteRules = []; // migration ran, no disable rule for localhost
+
+      const { events, cleanup } = collectEvents('VSC_SETTINGS_READY');
+      eventCleanup = cleanup;
+
+      await loadBridge();
+      docEl.dispatchEvent(new CustomEvent('VSC_REQUEST_SETTINGS'));
+      expect(events).toHaveLength(1);
+      expect(events[0].detail.abort).toBeUndefined(); // NOT aborted
+    });
+
     it('blacklist uses domain boundary matching (x.com does NOT match localhost)', async () => {
       // Regression test for fixed bug: raw RegExp('x.com') would match
       // any URL containing 'x.com'. isBlacklisted() uses domain boundaries.
@@ -291,10 +307,27 @@ describe('content-bridge', () => {
 
       events.length = 0;
 
-      // Blacklist now matches current URL
+      // Blacklist now matches current URL (pre-migration: no siteRules in change)
       onChanged({ blacklist: { oldValue: '', newValue: 'localhost' } }, 'sync');
       const teardowns2 = events.filter((e) => e.detail?.type === 'VSC_TEARDOWN');
       expect(teardowns2).toHaveLength(1);
+    });
+
+    it('blacklist change does NOT trigger teardown when siteRules exists (post-migration)', async () => {
+      const onChanged = await loadBridge();
+      const { events, cleanup } = collectEvents('VSC_MESSAGE');
+      eventCleanup = cleanup;
+
+      // siteRules present in the change → post-migration, blacklist is ignored
+      onChanged(
+        {
+          blacklist: { oldValue: '', newValue: 'localhost' },
+          siteRules: { oldValue: [], newValue: [] },
+        },
+        'sync'
+      );
+      const teardowns = events.filter((e) => e.detail?.type === 'VSC_TEARDOWN');
+      expect(teardowns).toHaveLength(0);
     });
 
     it('dispatches VSC_REINIT when extension re-enabled', async () => {
