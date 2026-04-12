@@ -418,9 +418,17 @@ function recordKeyPress(e) {
   // Capture v2 identity
   e.target.code = e.code;
   e.target.keyCode = e.keyCode;
-  // Use code-based display so keys with identical e.key are distinguishable
-  // (e.g. Enter vs NumpadEnter both produce e.key="Enter", but code differs).
-  e.target.displayKey = window.VSC.Constants.displayKeyFromCode(e.code) || e.key;
+
+  // Display: use the layout map when available — it shows the actual character
+  // printed on the key for the user's current keyboard layout (e.g. "z" for the
+  // KeyW physical key on AZERTY). Fall back to displayKeyFromCode for Numpad keys
+  // where the layout map returns the same value as the main keyboard (both Enter
+  // and NumpadEnter map to "Enter" in the layout map, so we need the explicit
+  // "Num Enter" label from displayKeyFromCode to keep them visually distinct).
+  const isNumpad = e.code.startsWith('Numpad');
+  e.target.displayKey = isNumpad
+    ? window.VSC.Constants.displayKeyFromCode(e.code) || e.key
+    : layoutMap?.get(e.code) || window.VSC.Constants.displayKeyFromCode(e.code) || e.key;
 
   // Capture modifiers — only store object if any modifier is active
   const hasMod = e.ctrlKey || e.altKey || e.shiftKey || e.metaKey;

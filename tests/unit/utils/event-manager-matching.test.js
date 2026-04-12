@@ -336,6 +336,72 @@ describe('EventManager Matching', () => {
     expect(actions.length).toBe(1);
   });
 
+  // Non-QWERTY layout matching
+  // event.code is physical key position — the same physical key fires the same
+  // binding regardless of what character it produces on the user's layout.
+  // AZERTY 'Z' key is at physical position KeyW; a binding stored as code:"KeyW"
+  // correctly fires when that key is pressed (event.code="KeyW").
+
+  it('AZERTY: binding stored at correct physical code fires on that physical key', () => {
+    // After re-recording on AZERTY, 'Z' key stores code:"KeyW" (physical position).
+    // Pressing 'Z' on AZERTY produces event.code="KeyW" → match.
+    const { eventManager, actions } = setupEnv([
+      {
+        action: 'rewind',
+        code: 'KeyW',
+        key: 87,
+        keyCode: 87,
+        displayKey: 'z',
+        value: 10,
+        force: false,
+      },
+    ]);
+    eventManager.handleKeydown(makeEvent({ code: 'KeyW', key: 'z', keyCode: 90, timeStamp: 1150 }));
+    expect(actions.length).toBe(1);
+    expect(actions[0].action).toBe('rewind');
+  });
+
+  it('AZERTY: migrated binding (wrong code:"KeyZ") does NOT fire on AZERTY Z press (code:"KeyW")', () => {
+    // The v2 migration stored code:"KeyZ" for keyCode:90 (QWERTY assumption).
+    // On AZERTY, pressing 'Z' gives event.code="KeyW" — no match until user re-records.
+    // This test documents the known migration artifact that prompts re-recording.
+    const { eventManager, actions } = setupEnv([
+      {
+        action: 'rewind',
+        code: 'KeyZ',
+        key: 90,
+        keyCode: 90,
+        displayKey: 'z',
+        value: 10,
+        force: false,
+      },
+    ]);
+    eventManager.handleKeydown(makeEvent({ code: 'KeyW', key: 'z', keyCode: 90, timeStamp: 1160 }));
+    expect(actions.length).toBe(0);
+  });
+
+  // Dead key guard
+
+  it('Dead key press does not trigger any binding', () => {
+    // On French/European keyboards, keys like ^ are dead keys — the first
+    // keypress produces event.key='Dead' and should not fire shortcuts.
+    const { eventManager, actions } = setupEnv([
+      {
+        action: 'reset',
+        code: 'BracketLeft',
+        key: 192,
+        keyCode: 192,
+        displayKey: '`',
+        value: 1.0,
+        force: false,
+      },
+    ]);
+    eventManager.handleKeydown(
+      makeEvent({ code: 'BracketLeft', key: 'Dead', keyCode: 192, timeStamp: 1200 })
+    );
+    expect(actions.length).toBe(0);
+  });
+
   // Numpad key matching
 
   it('Numpad: NumpadEnter binding fires correctly on NumpadEnter press', () => {
