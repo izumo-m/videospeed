@@ -110,8 +110,12 @@ if (!window.VSC.VideoSpeedConfig) {
           storage.blacklist !== undefined &&
           storage.siteRules
         ) {
-          // Both exist (e.g. partial sync, rollback). Prefer siteRules, log warning.
-          window.VSC.logger.warn('Found both blacklist and siteRules — using siteRules');
+          // Both exist — this is the normal state for all migrated users.
+          // blacklist is intentionally kept in storage for sync compat with older
+          // extension versions on other devices (see bridge fix: blacklist is only
+          // checked pre-migration when siteRules is absent).
+          // TODO: remove blacklist from storage once we're confident sync compat
+          // is no longer needed (a few release cycles after siteRules shipped).
         }
 
         // Apply siteRules
