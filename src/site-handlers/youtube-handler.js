@@ -29,11 +29,15 @@ class YouTubeHandler extends window.VSC.BaseSiteHandler {
     // all pointer events. Our controller inside .html5-video-player can't z-index
     // above it. Fix: insert into #player (the common parent) so our controller
     // participates in the same stacking context as the overlay.
-    if (document.getElementById('player-controls')) {
-      const playerContainer = targetParent.parentElement;
-      if (playerContainer) {
-        targetParent = playerContainer;
-      }
+    // NOTE: Must scope the query to targetParent.parentElement to avoid falsely matching
+    // a global #player-controls element on the desktop site, which promotes insertion
+    // into the tightly-managed ytd-player > div#container and crashes Polymer.
+    if (
+      targetParent &&
+      targetParent.parentElement &&
+      targetParent.parentElement.querySelector('#player-controls')
+    ) {
+      targetParent = targetParent.parentElement;
     }
 
     return {

@@ -291,7 +291,7 @@ class VideoSpeedExtension {
 
       // Defer until readyState >= HAVE_CURRENT_DATA — inserting a controller
       // too early can trigger the site's internal MutationObservers.
-      if (video.readyState < 2 && (video.src || video.currentSrc)) {
+      if (video.readyState < 2) {
         this.logger.debug(
           'Deferring controller until loadeddata (readyState=%d)',
           video.readyState

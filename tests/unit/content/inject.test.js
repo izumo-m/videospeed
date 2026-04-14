@@ -173,12 +173,13 @@ describe('Inject', () => {
     expect(video.vsc instanceof window.VSC.VideoController).toBe(true);
   });
 
-  it('onVideoFound attaches immediately when video has no src (no-source placeholder)', () => {
+  it('onVideoFound defers controller when video has no src (no-source placeholder)', () => {
     extension = window.VSC_controller;
     expect(extension).toBeDefined();
 
-    // readyState=0, no src → should attach immediately (no loadeddata to wait for)
+    // readyState=0, no src → MUST defer, because injecting into raw uninitialized DOM crashes Polymer
     const video = createMockVideo({ readyState: 0, currentSrc: '' });
+    video.addEventListener = vi.fn();
     const parent = document.createElement('div');
 
     Object.defineProperty(video, 'isConnected', {
@@ -189,7 +190,13 @@ describe('Inject', () => {
 
     extension.onVideoFound(video, parent);
 
-    expect(video.vsc).toBeDefined();
+    expect(video.vsc).toBeUndefined();
+    // Verify event listener was added
+    expect(video.addEventListener).toHaveBeenCalledWith(
+      'loadeddata',
+      expect.any(Function),
+      expect.objectContaining({ once: true })
+    );
   });
 
   it('onVideoFound should handle video with neither parentElement nor parentNode', async () => {
