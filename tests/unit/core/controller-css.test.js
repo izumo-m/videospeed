@@ -53,7 +53,8 @@ describe('ControllerCSS', () => {
   it('DEFAULT_CONTROLLER_CSS preserves DOM-contextual YouTube rules', () => {
     const css = window.VSC.Constants.DEFAULT_CONTROLLER_CSS;
     expect(css.includes('.ytp-hide-info-bar')).toBe(true);
-    expect(css.includes('.ytp-paid-content-overlay-link')).toBe(true);
+    // .ytp-paid-content-overlay-link rule is injected dynamically (YouTube-only)
+    // to avoid [style*=...] attribute selectors in the static stylesheet (#1501).
     expect(css.includes('#player > vsc-controller')).toBe(true);
   });
 

@@ -187,12 +187,16 @@ class VideoSpeedExtension {
 
   /**
    * Resolve domain-based CSS selectors for the current hostname.
-   * Matching domains: selector stripped (rule applies). Non-matching: [data-vsc-never].
+   * Matching domains: selector stripped (rule applies unconditionally).
+   * Non-matching: entire rule removed. Stripping (vs neutering with a dead
+   * selector) ensures perf-sensitive selectors like [style*=...] inside
+   * non-matching rules never reach the browser's style invalidation engine.
    */
   preprocessDomainCSS(css) {
     const hostname = location.hostname.replace(/^www\./, '');
-    return css.replace(/\[style\*='--vsc-domain:\s*"([^"]+)"'\]/g, (_match, domain) =>
-      domain === hostname ? '' : '[data-vsc-never]'
+    return css.replace(
+      /:root\[style\*='--vsc-domain:\s*"([^"]+)"'\]([^{]*)\{([^}]*)\}/g,
+      (match, domain, selector, body) => (domain === hostname ? `${selector.trim()} {${body}}` : '')
     );
   }
 
