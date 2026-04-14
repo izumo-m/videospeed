@@ -223,4 +223,102 @@ describe('Inject', () => {
     expect(video.vsc).toBeDefined();
     expect(video.vsc.parent).toBe(fallbackParent);
   });
+
+  // --- CSS injection: adoptedStyleSheets composition ---
+
+  /** Helper: reset extension CSS state so injectControllerCSS can re-run. */
+  function resetCSSState(ext) {
+    document.adoptedStyleSheets = (document.adoptedStyleSheets || []).filter(
+      (s) => s !== ext._controllerSheet && s !== ext._customSheet
+    );
+    ext._controllerSheet = null;
+    ext._customSheet = null;
+  }
+
+  it('injectControllerCSS adds default sheet to adoptedStyleSheets', () => {
+    extension = window.VSC_controller;
+    resetCSSState(extension);
+    extension.config.settings.customCSS = '';
+
+    extension.injectControllerCSS();
+
+    expect(extension._controllerSheet).not.toBeNull();
+    expect(document.adoptedStyleSheets).toContain(extension._controllerSheet);
+  });
+
+  it('injectControllerCSS adds both default and custom sheets when customCSS is set', () => {
+    extension = window.VSC_controller;
+    resetCSSState(extension);
+    extension.config.settings.customCSS = 'vsc-controller { top: 42px; }';
+
+    extension.injectControllerCSS();
+
+    expect(extension._controllerSheet).not.toBeNull();
+    expect(extension._customSheet).not.toBeNull();
+    expect(document.adoptedStyleSheets).toContain(extension._controllerSheet);
+    expect(document.adoptedStyleSheets).toContain(extension._customSheet);
+  });
+
+  it('injectControllerCSS skips custom sheet when customCSS is empty', () => {
+    extension = window.VSC_controller;
+    resetCSSState(extension);
+    extension.config.settings.customCSS = '';
+
+    extension.injectControllerCSS();
+
+    expect(extension._controllerSheet).not.toBeNull();
+    expect(extension._customSheet).toBeNull();
+  });
+
+  it('injectControllerCSS is idempotent (no-op on second call)', () => {
+    extension = window.VSC_controller;
+    resetCSSState(extension);
+    extension.config.settings.customCSS = '';
+
+    extension.injectControllerCSS();
+    const countAfterFirst = document.adoptedStyleSheets.length;
+    extension.injectControllerCSS();
+
+    expect(document.adoptedStyleSheets.length).toBe(countAfterFirst);
+  });
+
+  it('setupCSSLiveUpdates adds custom sheet on storage change', () => {
+    extension = window.VSC_controller;
+    resetCSSState(extension);
+    extension.config.settings.customCSS = '';
+
+    extension.injectControllerCSS();
+    // deferDOMWork is async — register listener explicitly for unit test
+    extension.setupCSSLiveUpdates();
+    expect(extension._customSheet).toBeNull();
+
+    document.documentElement.dispatchEvent(
+      new CustomEvent('VSC_STORAGE_CHANGED', {
+        detail: { customCSS: { newValue: 'vsc-controller { color: red; }' } },
+      })
+    );
+
+    expect(extension._customSheet).not.toBeNull();
+    expect(document.adoptedStyleSheets).toContain(extension._customSheet);
+    expect(document.adoptedStyleSheets).toContain(extension._controllerSheet);
+  });
+
+  it('setupCSSLiveUpdates removes custom sheet when customCSS cleared', () => {
+    extension = window.VSC_controller;
+    resetCSSState(extension);
+    extension.config.settings.customCSS = 'vsc-controller { color: red; }';
+
+    extension.injectControllerCSS();
+    extension.setupCSSLiveUpdates();
+    expect(extension._customSheet).not.toBeNull();
+
+    document.documentElement.dispatchEvent(
+      new CustomEvent('VSC_STORAGE_CHANGED', {
+        detail: { customCSS: { newValue: '' } },
+      })
+    );
+
+    expect(extension._customSheet).toBeNull();
+    expect(document.adoptedStyleSheets).toContain(extension._controllerSheet);
+  });
 });

@@ -38,8 +38,7 @@ class VideoSpeedExtension {
         return;
       }
 
-      // Defer DOM work so the page's framework (e.g. YouTube's Polymer)
-      // finishes init before we touch anything.
+      // Defer DOM work so page frameworks finish init before we mutate.
       this.deferDOMWork(document);
     } catch (error) {
       this.logger.error(`Failed to initialize Video Speed Controller: ${error.message}`);
@@ -198,32 +197,57 @@ class VideoSpeedExtension {
   }
 
   /**
-   * Inject controller CSS via adoptedStyleSheets — zero DOM mutations.
-   * Creating <style> elements in <head> triggers Polymer's internal
-   * MutationObservers on YouTube, crashing the player ~30% of loads.
-   * adoptedStyleSheets is a pure CSSOM API (Chrome 73+, our min is 111).
+   * Inject controller CSS via adoptedStyleSheets — pure CSSOM, zero DOM
+   * mutations. <style> elements trigger page-level MutationObservers on
+   * sites with complex frameworks, breaking their internal state.
+   *
+   * Two separate sheets: _controllerSheet (built-in defaults, domain-
+   * preprocessed, never changes at runtime) and _customSheet (user
+   * additions, injected raw, live-updatable). Keeps them separate so
+   * user CSS edits don't re-preprocess the defaults.
    */
   injectControllerCSS() {
     try {
       if (this._controllerSheet) {
         return;
       }
-      const css = this.config.settings.controllerCSS || window.VSC.Constants.DEFAULT_CONTROLLER_CSS;
       this._controllerSheet = new CSSStyleSheet();
-      this._controllerSheet.replaceSync(this.preprocessDomainCSS(css));
-      document.adoptedStyleSheets = [...document.adoptedStyleSheets, this._controllerSheet];
+      this._controllerSheet.replaceSync(
+        this.preprocessDomainCSS(window.VSC.Constants.DEFAULT_CONTROLLER_CSS)
+      );
+      const toAdopt = [this._controllerSheet];
+
+      const customCSS = this.config.settings.customCSS || '';
+      if (customCSS) {
+        this._customSheet = new CSSStyleSheet();
+        this._customSheet.replaceSync(customCSS);
+        toAdopt.push(this._customSheet);
+      }
+
+      document.adoptedStyleSheets = [...document.adoptedStyleSheets, ...toAdopt];
     } catch (error) {
       this.logger.error(`Failed to inject controller CSS: ${error.message}`);
     }
   }
 
-  /** Listen for live controllerCSS updates from the options page. */
+  /** Live-update the user's custom CSS when options are saved. */
   setupCSSLiveUpdates() {
     document.documentElement.addEventListener('VSC_STORAGE_CHANGED', (e) => {
-      if (e.detail?.controllerCSS?.newValue !== undefined && this._controllerSheet) {
-        this._controllerSheet.replaceSync(
-          this.preprocessDomainCSS(e.detail.controllerCSS.newValue)
+      if (e.detail?.customCSS?.newValue === undefined || !this._controllerSheet) {
+        return;
+      }
+      const customCSS = e.detail.customCSS.newValue || '';
+      if (customCSS) {
+        if (!this._customSheet) {
+          this._customSheet = new CSSStyleSheet();
+          document.adoptedStyleSheets = [...document.adoptedStyleSheets, this._customSheet];
+        }
+        this._customSheet.replaceSync(customCSS);
+      } else if (this._customSheet) {
+        document.adoptedStyleSheets = document.adoptedStyleSheets.filter(
+          (s) => s !== this._customSheet
         );
+        this._customSheet = null;
       }
     });
   }
@@ -331,13 +355,14 @@ class VideoSpeedExtension {
       this.siteHandlerManager.cleanup();
     }
 
-    // Remove adopted controller CSS
-    if (this._controllerSheet && document.adoptedStyleSheets) {
+    // Remove adopted controller CSS (both default and custom sheets)
+    if (document.adoptedStyleSheets) {
       document.adoptedStyleSheets = document.adoptedStyleSheets.filter(
-        (s) => s !== this._controllerSheet
+        (s) => s !== this._controllerSheet && s !== this._customSheet
       );
-      this._controllerSheet = null;
     }
+    this._controllerSheet = null;
+    this._customSheet = null;
 
     this.actionHandler = null;
     this.mediaObserver = null;

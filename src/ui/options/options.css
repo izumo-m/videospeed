@@ -657,10 +657,6 @@ button:active {
   flex: none;
 }
 
-#resetCSS {
-  font-size: inherit;
-}
-
 /* Syntax-highlighted CSS editor: transparent textarea over colored <pre> */
 .css-editor {
   position: relative;

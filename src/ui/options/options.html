@@ -120,15 +120,26 @@
         </div>
         <div class="row">
           <label for="controllerCSS"
-            >Controller CSS<br />
+            >Custom CSS<br />
             <em
-              >Customize controller positioning per site.
-              <a href="#" id="resetCSS">Reset to defaults</a>.</em
+              >Additional rules injected alongside the built-in defaults. Use to override
+              positioning or add site-specific tweaks.</em
             >
           </label>
           <div class="css-editor">
             <pre id="cssHighlight" class="css-highlight" aria-hidden="true"></pre>
-            <textarea id="controllerCSS" rows="30" spellcheck="false"></textarea>
+            <textarea
+              id="controllerCSS"
+              rows="8"
+              spellcheck="false"
+              placeholder="/* Global override */
+vsc-controller { top: 50px !important; }
+
+/* Domain-specific */
+:root[style*='--vsc-domain: &quot;example.com&quot;'] vsc-controller {
+  display: none !important;
+}"
+            ></textarea>
           </div>
           <div id="cssValidation" class="css-validation"></div>
         </div>

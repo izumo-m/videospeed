@@ -217,10 +217,10 @@ describe('content-bridge', () => {
       expect(events[0].detail.settings.rememberSpeed).toBe(true);
     });
 
-    it('strips sensitive keys, passes controllerCSS, includes hostname', async () => {
+    it('strips sensitive keys, passes customCSS, includes hostname', async () => {
       getMockStorage().blacklist = 'some.site';
       getMockStorage().enabled = true;
-      getMockStorage().controllerCSS = 'custom { color: red }';
+      getMockStorage().customCSS = 'vsc-controller { top: 42px; }';
       await loadBridge();
 
       const { events, cleanup } = collectEvents('VSC_SETTINGS_READY');
@@ -232,8 +232,8 @@ describe('content-bridge', () => {
       // Stripped from settings
       expect(settings.blacklist).toBeUndefined();
       expect(settings.enabled).toBeUndefined();
-      // controllerCSS passes through (inject.js reads it from config.settings)
-      expect(settings.controllerCSS).toBe('custom { color: red }');
+      // customCSS passes through (inject.js reads it from config.settings)
+      expect(settings.customCSS).toBe('vsc-controller { top: 42px; }');
       expect(typeof hostname).toBe('string');
     });
   });

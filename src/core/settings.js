@@ -71,8 +71,12 @@ if (!window.VSC.VideoSpeedConfig) {
      */
     async load() {
       try {
-        // Use StorageManager which handles both contexts automatically
-        const storage = await window.VSC.StorageManager.get(window.VSC.Constants.DEFAULT_SETTINGS);
+        // Use StorageManager which handles both contexts automatically.
+        // controllerCSS: null fetches the legacy key for one-time migration (not in DEFAULT_SETTINGS).
+        const storage = await window.VSC.StorageManager.get({
+          ...window.VSC.Constants.DEFAULT_SETTINGS,
+          controllerCSS: null,
+        });
 
         // null = bridge signaled abort (site disabled/blacklisted)
         if (storage === null) {
@@ -150,8 +154,11 @@ if (!window.VSC.VideoSpeedConfig) {
         this.settings.startHidden = Boolean(storage.startHidden);
         this.settings.controllerOpacity = Number(storage.controllerOpacity);
         this.settings.controllerButtonSize = Number(storage.controllerButtonSize);
-        this.settings.controllerCSS =
-          storage.controllerCSS ?? window.VSC.Constants.DEFAULT_CONTROLLER_CSS;
+        // One-time migration: drop legacy controllerCSS key, reset to new model.
+        if (storage.controllerCSS !== null) {
+          window.VSC.StorageManager.remove(['controllerCSS']);
+        }
+        this.settings.customCSS = storage.customCSS ?? '';
         this.settings.logLevel = Number(
           storage.logLevel || window.VSC.Constants.DEFAULT_SETTINGS.logLevel
         );

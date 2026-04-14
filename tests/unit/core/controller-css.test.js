@@ -1,7 +1,7 @@
 /**
- * Unit tests for user-editable controller CSS feature
- * Covers: DEFAULT_CONTROLLER_CSS constant, controllerCSS in settings,
- * www. stripping in applyDomainStyles, dynamic CSS injection, live updates
+ * Unit tests for controller CSS feature.
+ * Default CSS always comes from code (DEFAULT_CONTROLLER_CSS).
+ * Only user customizations are stored in the `customCSS` setting.
  */
 
 import {
@@ -26,7 +26,7 @@ describe('ControllerCSS', () => {
     cleanupChromeMock();
   });
 
-  // --- Phase 1: Foundation ---
+  // --- Default CSS (code-driven) ---
 
   it('DEFAULT_CONTROLLER_CSS constant exists and is a non-empty string', () => {
     const css = window.VSC.Constants.DEFAULT_CONTROLLER_CSS;
@@ -57,45 +57,69 @@ describe('ControllerCSS', () => {
     expect(css.includes('#player > vsc-controller')).toBe(true);
   });
 
-  it('DEFAULT_SETTINGS includes controllerCSS field (sync storage)', () => {
+  // --- Custom CSS (user additions, stored separately) ---
+
+  it('DEFAULT_SETTINGS includes customCSS field defaulting to empty string', () => {
     const defaults = window.VSC.Constants.DEFAULT_SETTINGS;
-    expect(defaults.controllerCSS).toBeDefined();
-    expect(defaults.controllerCSS).toBe(window.VSC.Constants.DEFAULT_CONTROLLER_CSS);
+    expect('customCSS' in defaults).toBe(true);
+    expect(defaults.customCSS).toBe('');
   });
 
-  it('controllerCSS loads from storage into settings', async () => {
+  it('customCSS loads from storage into settings', async () => {
     setupMock();
-    const customCSS = 'vsc-controller { top: 999px; }';
-    getMockStorage().controllerCSS = customCSS;
+    const userCSS = 'vsc-controller { top: 999px; }';
+    getMockStorage().customCSS = userCSS;
 
     const config = new window.VSC.VideoSpeedConfig();
     await config.load();
 
-    expect(config.settings.controllerCSS).toBe(customCSS);
+    expect(config.settings.customCSS).toBe(userCSS);
   });
 
-  it('controllerCSS falls back to default when absent from storage', async () => {
-    setupMock();
-
-    const config = new window.VSC.VideoSpeedConfig();
-    await config.load();
-
-    expect(config.settings.controllerCSS).toBe(window.VSC.Constants.DEFAULT_CONTROLLER_CSS);
-  });
-
-  it('controllerCSS round-trips through save and load', async () => {
+  it('customCSS falls back to empty string when absent from storage', async () => {
     setupMock();
 
     const config = new window.VSC.VideoSpeedConfig();
     await config.load();
 
-    const customCSS = 'vsc-controller { position: relative; top: 42px; }';
-    await config.save({ controllerCSS: customCSS });
+    expect(config.settings.customCSS).toBe('');
+  });
 
-    // Create a fresh config and load from storage
+  it('customCSS round-trips through save and load', async () => {
+    setupMock();
+
+    const config = new window.VSC.VideoSpeedConfig();
+    await config.load();
+
+    const userCSS = 'vsc-controller { position: relative; top: 42px; }';
+    await config.save({ customCSS: userCSS });
+
     const config2 = new window.VSC.VideoSpeedConfig();
     await config2.load();
 
-    expect(config2.settings.controllerCSS).toBe(customCSS);
+    expect(config2.settings.customCSS).toBe(userCSS);
+  });
+
+  // --- Migration: old controllerCSS blob → customCSS ---
+
+  it('migration: old controllerCSS matching current default clears to empty customCSS', async () => {
+    setupMock();
+    getMockStorage().controllerCSS = window.VSC.Constants.DEFAULT_CONTROLLER_CSS;
+
+    const config = new window.VSC.VideoSpeedConfig();
+    await config.load();
+
+    expect(config.settings.customCSS).toBe('');
+  });
+
+  it('migration: old controllerCSS with customizations resets to empty (breaking migration)', async () => {
+    setupMock();
+    getMockStorage().controllerCSS = `${window.VSC.Constants.DEFAULT_CONTROLLER_CSS}\n/* custom */ vsc-controller { border: 1px solid red; }`;
+
+    const config = new window.VSC.VideoSpeedConfig();
+    await config.load();
+
+    // Intentional: new model doesn't attempt to salvage old blob customizations.
+    expect(config.settings.customCSS).toBe('');
   });
 });

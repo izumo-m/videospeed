@@ -55,8 +55,12 @@ export const DEFAULT_CONTROLLER_CSS = `/* === Domain-based rules (stable — hos
   top: 10px;
 }
 
-/* YouTube — shifts below paid promotion overlay when visible */
-.ytp-hide-info-bar:has(.ytp-paid-content-overlay-link:not([style*="display: none"])) vsc-controller {
+/* YouTube — shifts below paid promotion overlay when visible.
+   Presence of the link element is the meaningful condition; the old
+   :not([style*="display: none"]) check forced style recalculation on every
+   style mutation site-wide and caused multi-second hangs on pages with many
+   DOM updates (e.g. Gemini copy). (#1501) */
+.ytp-hide-info-bar:has(.ytp-paid-content-overlay-link) vsc-controller {
   top: 40px;
 }
 

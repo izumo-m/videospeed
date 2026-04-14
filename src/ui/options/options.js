@@ -729,10 +729,10 @@ async function save_options() {
     const controllerButtonSize = Number(document.getElementById('controllerButtonSize').value);
     const logLevel = parseInt(document.getElementById('logLevel').value);
     const siteRules = collectSiteRules();
-    const controllerCSS = document.getElementById('controllerCSS').value;
+    const customCSS = document.getElementById('controllerCSS').value;
 
     // Validate CSS syntax — block save on parse error
-    if (!validateControllerCSS(controllerCSS)) {
+    if (!validateControllerCSS(customCSS)) {
       status.textContent = 'Error: Controller CSS has syntax errors. Fix them before saving.';
       status.classList.add('show', 'error');
       setTimeout(() => {
@@ -743,7 +743,7 @@ async function save_options() {
     }
 
     // Byte-length guard for chrome.storage.sync (8KB per-item limit)
-    const cssByteSize = new Blob([controllerCSS]).size;
+    const cssByteSize = new Blob([customCSS]).size;
     if (cssByteSize > 8192) {
       status.textContent = `Error: Controller CSS exceeds 8KB storage limit (${Math.round(cssByteSize / 1024)}KB). Reduce CSS size.`;
       status.classList.add('show', 'error');
@@ -770,8 +770,9 @@ async function save_options() {
       logLevel: logLevel,
       keyBindings: keyBindings,
       siteRules: siteRules,
-      controllerCSS: controllerCSS,
     };
+
+    settingsToSave.customCSS = customCSS;
 
     const ok = await window.VSC.videoSpeedConfig.save(settingsToSave);
 
@@ -813,8 +814,7 @@ async function restore_options() {
     document.getElementById('controllerOpacity').value = storage.controllerOpacity;
     document.getElementById('controllerButtonSize').value = storage.controllerButtonSize;
     document.getElementById('logLevel').value = storage.logLevel;
-    document.getElementById('controllerCSS').value =
-      storage.controllerCSS ?? window.VSC.Constants.DEFAULT_CONTROLLER_CSS;
+    document.getElementById('controllerCSS').value = storage.customCSS ?? '';
 
     // Render site rules
     const siteRules = storage.siteRules || window.VSC.Constants.DEFAULT_SETTINGS.siteRules;
@@ -1102,14 +1102,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initial highlight + validation
   updateCSSHighlight();
   validateControllerCSS(cssTextarea.value);
-
-  document.getElementById('resetCSS').addEventListener('click', (e) => {
-    e.preventDefault();
-    document.getElementById('controllerCSS').value = window.VSC.Constants.DEFAULT_CONTROLLER_CSS;
-    updateCSSHighlight();
-    validateControllerCSS(window.VSC.Constants.DEFAULT_CONTROLLER_CSS);
-    markDirty();
-  });
 
   // About and feedback button event listeners
   document.getElementById('about').addEventListener('click', () => {
