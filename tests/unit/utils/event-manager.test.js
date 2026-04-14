@@ -380,7 +380,7 @@ describe('EventManager', () => {
     expect(config.settings.lastSpeed).toBe(2.0);
     expect(eventManager.fightCount).toBe(0);
     expect(eventManager.lastUserInteractionAt).toBe(0); // consumed
-    expect(eventStopped).toBe(true);
+    expect(eventStopped).toBe(false);
   });
 
   it('should fight back when external speed change has no preceding user gesture', async () => {

@@ -270,7 +270,6 @@ class EventManager {
       // fires ratechange at readyState=0; overwriting it can break the player.
       if (video.readyState < 1) {
         window.VSC.logger.debug('Skipping cooldown fight-back during video init (readyState < 1)');
-        event.stopImmediatePropagation();
         return;
       }
 
@@ -310,7 +309,6 @@ class EventManager {
       window.VSC.logger.debug(
         'Ignoring external ratechange during video initialization (readyState < 1)'
       );
-      event.stopImmediatePropagation();
       return;
     }
 
@@ -321,7 +319,6 @@ class EventManager {
       window.VSC.logger.debug(
         `Ignoring external ratechange below MIN: raw=${rawExternalRate}, MIN=${min}`
       );
-      event.stopImmediatePropagation();
       return;
     }
 
@@ -350,7 +347,6 @@ class EventManager {
         if (this.actionHandler) {
           this.actionHandler.adjustSpeed(video, video.playbackRate);
         }
-        event.stopImmediatePropagation();
         return;
       }
 
@@ -393,8 +389,6 @@ class EventManager {
         source: 'external',
       });
     }
-
-    event.stopImmediatePropagation();
   }
 
   /**
