@@ -295,6 +295,61 @@ describe('ActionHandler', () => {
     expect(controller.classList.contains('vsc-manual')).toBe(true);
   });
 
+  // --- flashController visibility rules ---
+
+  it('flashController: startHidden=true → never flashes, even after V toggle', async () => {
+    const config = window.VSC.videoSpeedConfig;
+    await config.load();
+    config.settings.startHidden = true;
+
+    const eventManager = new window.VSC.EventManager(config, null);
+    const actionHandler = new window.VSC.ActionHandler(config, eventManager);
+    const video = createTestVideoWithController(config, actionHandler);
+    const controller = video.vsc.div;
+
+    // Before any V toggle
+    actionHandler.flashController(controller);
+    expect(controller.classList.contains('vsc-show')).toBe(false);
+
+    // After user presses V (shows controller manually)
+    controller.classList.add('vsc-manual');
+    controller.classList.remove('vsc-hidden');
+    actionHandler.flashController(controller);
+    expect(controller.classList.contains('vsc-show')).toBe(false);
+  });
+
+  it('flashController: startHidden=false → flashes on speed change', async () => {
+    const config = window.VSC.videoSpeedConfig;
+    await config.load();
+    config.settings.startHidden = false;
+
+    const eventManager = new window.VSC.EventManager(config, null);
+    const actionHandler = new window.VSC.ActionHandler(config, eventManager);
+    const video = createTestVideoWithController(config, actionHandler);
+    const controller = video.vsc.div;
+
+    actionHandler.flashController(controller);
+    expect(controller.classList.contains('vsc-show')).toBe(true);
+  });
+
+  it('flashController: startHidden=false, user hid with V → does not flash', async () => {
+    const config = window.VSC.videoSpeedConfig;
+    await config.load();
+    config.settings.startHidden = false;
+
+    const eventManager = new window.VSC.EventManager(config, null);
+    const actionHandler = new window.VSC.ActionHandler(config, eventManager);
+    const video = createTestVideoWithController(config, actionHandler);
+    const controller = video.vsc.div;
+
+    // User pressed V to hide
+    controller.classList.add('vsc-manual');
+    controller.classList.add('vsc-hidden');
+
+    actionHandler.flashController(controller);
+    expect(controller.classList.contains('vsc-show')).toBe(false);
+  });
+
   it('ActionHandler should work with videos in nested shadow DOM', async () => {
     const config = window.VSC.videoSpeedConfig;
     await config.load();

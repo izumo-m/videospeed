@@ -311,19 +311,18 @@ class ActionHandler {
    * @param {number} duration - Duration in ms (default 2000)
    */
   flashController(controller, duration) {
-    // Don't flash when user has explicitly hidden this controller.
-    // vsc-manual + vsc-hidden = "user pressed V to hide" — respect that.
+    // startHidden is a hard preference — never flash, regardless of V toggle.
+    if (this.config.settings.startHidden) {
+      window.VSC.logger.debug('flashController skipped: startHidden is a hard preference');
+      return;
+    }
+
+    // User explicitly hid this controller (V key) — respect that choice.
     if (
       controller.classList.contains('vsc-manual') &&
       controller.classList.contains('vsc-hidden')
     ) {
       window.VSC.logger.debug('flashController skipped: user manually hid controller');
-      return;
-    }
-
-    // startHidden without user interaction: don't flash (no user intent yet)
-    if (this.config.settings.startHidden && !controller.classList.contains('vsc-manual')) {
-      window.VSC.logger.debug('flashController skipped: startHidden and no user interaction');
       return;
     }
 

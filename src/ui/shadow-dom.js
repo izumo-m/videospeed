@@ -46,12 +46,10 @@ class ShadowDOMManager {
         transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
-      /* Override hiding for manual controllers (unless explicitly hidden) */
-      :host(.vsc-manual:not(.vsc-hidden)) #controller {
-        display: block !important;
-        visibility: visible !important;
-        opacity: ${opacity} !important;
-      }
+      /* Temporarily show controller (speed change flash, highest priority).
+         vsc-manual:not(vsc-hidden) intentionally has NO CSS rule — user toggling
+         back to "show" should restore default behavior (follow autohide), not
+         permanently override it. vsc-manual is only read by JS flash guards. */
 
       /* Show shadow DOM content when host has vsc-show class (highest priority) */
       :host(.vsc-show) #controller {
