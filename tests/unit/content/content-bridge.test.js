@@ -295,42 +295,22 @@ describe('content-bridge', () => {
   // =========================================================================
 
   describe('lifecycle', () => {
-    it('dispatches VSC_TEARDOWN when extension disabled or site blacklisted', async () => {
+    // Lifecycle (teardown/reinit) is scoped to the popup's `enabled` toggle
+    // only. siteRules/blacklist changes take effect on next page load — they
+    // do NOT trigger live lifecycle events. This prevents every options save
+    // from reinitializing every active tab. (#1505)
+
+    it('dispatches VSC_TEARDOWN when disabled via popup toggle', async () => {
       const onChanged = await loadBridge();
       const { events, cleanup } = collectEvents('VSC_MESSAGE');
       eventCleanup = cleanup;
 
-      // Extension disabled
       onChanged({ enabled: { oldValue: true, newValue: false } }, 'sync');
       const teardowns = events.filter((e) => e.detail?.type === 'VSC_TEARDOWN');
       expect(teardowns).toHaveLength(1);
-
-      events.length = 0;
-
-      // Blacklist now matches current URL (pre-migration: no siteRules in change)
-      onChanged({ blacklist: { oldValue: '', newValue: 'localhost' } }, 'sync');
-      const teardowns2 = events.filter((e) => e.detail?.type === 'VSC_TEARDOWN');
-      expect(teardowns2).toHaveLength(1);
     });
 
-    it('blacklist change does NOT trigger teardown when siteRules exists (post-migration)', async () => {
-      const onChanged = await loadBridge();
-      const { events, cleanup } = collectEvents('VSC_MESSAGE');
-      eventCleanup = cleanup;
-
-      // siteRules present in the change → post-migration, blacklist is ignored
-      onChanged(
-        {
-          blacklist: { oldValue: '', newValue: 'localhost' },
-          siteRules: { oldValue: [], newValue: [] },
-        },
-        'sync'
-      );
-      const teardowns = events.filter((e) => e.detail?.type === 'VSC_TEARDOWN');
-      expect(teardowns).toHaveLength(0);
-    });
-
-    it('dispatches VSC_REINIT when extension re-enabled', async () => {
+    it('dispatches VSC_REINIT when re-enabled via popup toggle', async () => {
       const onChanged = await loadBridge();
       const { events, cleanup } = collectEvents('VSC_MESSAGE');
       eventCleanup = cleanup;
@@ -338,6 +318,33 @@ describe('content-bridge', () => {
       onChanged({ enabled: { oldValue: false, newValue: true } }, 'sync');
       const reinits = events.filter((e) => e.detail?.type === 'VSC_REINIT');
       expect(reinits).toHaveLength(1);
+    });
+
+    it('does NOT lifecycle on blacklist changes (takes effect on reload)', async () => {
+      const onChanged = await loadBridge();
+      const { events, cleanup } = collectEvents('VSC_MESSAGE');
+      eventCleanup = cleanup;
+
+      onChanged({ blacklist: { oldValue: '', newValue: 'localhost' } }, 'sync');
+      const lifecycle = events.filter(
+        (e) => e.detail?.type === 'VSC_TEARDOWN' || e.detail?.type === 'VSC_REINIT'
+      );
+      expect(lifecycle).toHaveLength(0);
+    });
+
+    it('does NOT lifecycle on siteRules changes (takes effect on reload)', async () => {
+      const onChanged = await loadBridge();
+      const { events, cleanup } = collectEvents('VSC_MESSAGE');
+      eventCleanup = cleanup;
+
+      onChanged(
+        { siteRules: { oldValue: [], newValue: [{ pattern: 'localhost', enabled: false }] } },
+        'sync'
+      );
+      const lifecycle = events.filter(
+        (e) => e.detail?.type === 'VSC_TEARDOWN' || e.detail?.type === 'VSC_REINIT'
+      );
+      expect(lifecycle).toHaveLength(0);
     });
 
     it('does NOT dispatch teardown/reinit on unrelated storage changes', async () => {

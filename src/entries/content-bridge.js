@@ -81,29 +81,15 @@ async function init() {
         return;
       }
 
-      // Lifecycle checks FIRST — teardown/reinit before relaying changes
-      const disabled = 'enabled' in changes && changes.enabled.newValue === false;
-      // Only check legacy blacklist changes on pre-migration devices (no siteRules yet)
-      const blacklisted =
-        'blacklist' in changes &&
-        !changes.siteRules?.newValue &&
-        isBlacklisted(changes.blacklist.newValue, location.href);
-      const siteRuleDisabled =
-        'siteRules' in changes &&
-        (() => {
-          const rule = matchSiteRule(changes.siteRules.newValue, location.href);
-          return rule && rule.enabled === false;
-        })();
-
-      if (disabled || blacklisted || siteRuleDisabled) {
+      // Lifecycle: only the popup's enabled toggle triggers teardown/reinit.
+      // Options page never writes `enabled`, so saving options can't trigger
+      // lifecycle — it only relays settings via VSC_STORAGE_CHANGED below.
+      // siteRules/blacklist changes take effect on next page load.
+      if (changes.enabled?.newValue === false) {
         docEl.dispatchEvent(new CustomEvent('VSC_MESSAGE', { detail: { type: 'VSC_TEARDOWN' } }));
         return;
       }
-
-      const reEnabled = 'enabled' in changes && changes.enabled.newValue === true;
-      const unblacklisted = 'blacklist' in changes && !blacklisted;
-      const siteRuleReEnabled = 'siteRules' in changes && !siteRuleDisabled;
-      if (reEnabled || unblacklisted || siteRuleReEnabled) {
+      if (changes.enabled?.oldValue === false && changes.enabled?.newValue !== false) {
         docEl.dispatchEvent(new CustomEvent('VSC_MESSAGE', { detail: { type: 'VSC_REINIT' } }));
       }
 
