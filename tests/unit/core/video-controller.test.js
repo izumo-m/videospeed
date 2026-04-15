@@ -340,4 +340,31 @@ describe('VideoController', () => {
     const initCall = adjustSpeedCalls.find((call) => call.value === 1.5);
     expect(initCall).toBeDefined();
   });
+
+  it('play event restore does not overwrite lastSpeed (#1494)', async () => {
+    const config = window.VSC.videoSpeedConfig;
+    await config.load();
+    config.settings.rememberSpeed = true;
+    config.settings.lastSpeed = 1.8;
+
+    const eventManager = new window.VSC.EventManager(config, null);
+    const actionHandler = new window.VSC.ActionHandler(config, eventManager);
+
+    const mockVideo = createMockVideo({
+      currentSrc: 'https://example.com/video.mp4',
+      playbackRate: 1.8,
+    });
+    mockDOM.container.appendChild(mockVideo);
+
+    const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
+    expect(controller).toBeDefined();
+
+    // Simulate browser resetting playbackRate during background, then play resumes
+    mockVideo.playbackRate = 1.0;
+    controller.handlePlay({ type: 'play', target: mockVideo });
+
+    // Lifecycle restore should re-apply speed but NOT corrupt lastSpeed
+    expect(mockVideo.playbackRate).toBe(1.8);
+    expect(config.settings.lastSpeed).toBe(1.8);
+  });
 });

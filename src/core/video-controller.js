@@ -235,8 +235,9 @@ class VideoController {
     const mediaEventAction = (event) => {
       const targetSpeed = this.getTargetSpeed(event.target);
 
+      // Lifecycle restore, not a user choice — don't persist to lastSpeed.
       window.VSC.logger.info(`Media event ${event.type}: restoring speed to ${targetSpeed}`);
-      this.actionHandler.adjustSpeed(event.target, targetSpeed, { source: 'internal' });
+      this.actionHandler.adjustSpeed(event.target, targetSpeed, { source: 'init' });
     };
 
     // Bind event handlers
