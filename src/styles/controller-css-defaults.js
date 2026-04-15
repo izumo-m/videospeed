@@ -49,24 +49,26 @@ export const DEFAULT_CONTROLLER_CSS = `/* === Domain-based rules (stable — hos
 
 /* === DOM-contextual rules (may break if site changes HTML structure) === */
 
-/* YouTube — vsc-controller is a sibling of .html5-video-player, not a
-   descendant. :has(> ...) on the shared parent is DOM-order-independent
-   (the controller may appear before or after the player element). */
+/* YouTube — controller can be inside .html5-video-player (main site via
+   youtube-handler) or a sibling of it (embeds, edge cases). Both selectors
+   needed; :has(> ...) handles the sibling case DOM-order-independently. */
+.ytp-hide-info-bar > vsc-controller,
 :has(> .ytp-hide-info-bar) > vsc-controller {
   position: relative;
   top: 10px;
 }
 
 /* YouTube — shifts below paid promotion overlay when visible.
-   [style*=...] attribute selectors are banned: they force global style
-   invalidation on every style mutation, causing multi-second hangs on
-   heavy pages like Gemini — even when scoped inside :has(). (#1501)
-   preprocessDomainCSS strips this rule entirely on non-YouTube pages. */
+   Domain-wrapped so preprocessDomainCSS strips it on non-YouTube pages:
+   [style*=...] forces global style invalidation on every style mutation,
+   causing multi-second hangs on heavy pages (Gemini, etc). (#1501) */
+:root[style*='--vsc-domain: "youtube.com"'] .ytp-hide-info-bar:has(.ytp-paid-content-overlay-link:not([style*="display: none"])) > vsc-controller,
 :root[style*='--vsc-domain: "youtube.com"'] :has(> .ytp-hide-info-bar .ytp-paid-content-overlay-link:not([style*="display: none"])) > vsc-controller {
   top: 40px;
 }
 
 /* YouTube embedded player (on third-party sites) */
+.html5-video-player:not(.ytp-hide-info-bar) > vsc-controller,
 :has(> .html5-video-player:not(.ytp-hide-info-bar)) > vsc-controller,
 #player > vsc-controller {
   position: relative;
