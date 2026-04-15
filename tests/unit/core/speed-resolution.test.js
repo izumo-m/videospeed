@@ -60,12 +60,12 @@ describe('SpeedResolution', () => {
     expect(ctrl.getTargetSpeed()).toBe(1.0);
   });
 
-  // --- Truth table row 2: rememberSpeed=OFF, site rule speed=2.0, lastSpeed=1.0 → 2.0 ---
+  // --- Truth table row 2: rememberSpeed=OFF, site rule speed=2.0, lastSpeed=null → 2.0 ---
   it('site rule speed=2.0, rememberSpeed OFF, lastSpeed default → site baseline 2.0', async () => {
     const config = window.VSC.videoSpeedConfig;
     await config.load();
     config.settings.rememberSpeed = false;
-    config.settings.lastSpeed = 1.0;
+    config.settings.lastSpeed = null;
     config.settings.siteDefaultSpeed = 2.0;
 
     const ctrl = makeController(config);
@@ -96,44 +96,44 @@ describe('SpeedResolution', () => {
     expect(ctrl.getTargetSpeed()).toBe(1.0);
   });
 
-  // --- Truth table row 5: rememberSpeed=ON, site=2.0, lastSpeed=1.5 → 1.5 (global carry wins) ---
-  it('rememberSpeed ON, site=2.0, lastSpeed=1.5 → 1.5 (global carry wins)', async () => {
+  // --- Per-site rule always wins on fresh load, even with rememberSpeed=ON ---
+  it('rememberSpeed ON, site=2.0, lastSpeed=null (fresh load) → 2.0 (site wins)', async () => {
     const config = window.VSC.videoSpeedConfig;
     await config.load();
     config.settings.rememberSpeed = true;
-    config.settings.lastSpeed = 1.5;
-    config.settings.siteDefaultSpeed = 2.0;
-
-    const ctrl = makeController(config);
-    expect(ctrl.getTargetSpeed()).toBe(1.5);
-  });
-
-  // --- Truth table row 6: rememberSpeed=ON, site=2.0, lastSpeed=1.0 → 2.0 (baseline fills in) ---
-  it('rememberSpeed ON, site=2.0, lastSpeed=1.0 (default) → 2.0 (baseline fills in)', async () => {
-    const config = window.VSC.videoSpeedConfig;
-    await config.load();
-    config.settings.rememberSpeed = true;
-    config.settings.lastSpeed = 1.0;
+    config.settings.lastSpeed = null; // load() nulls lastSpeed when site rule exists
     config.settings.siteDefaultSpeed = 2.0;
 
     const ctrl = makeController(config);
     expect(ctrl.getTargetSpeed()).toBe(2.0);
   });
 
-  // --- Session persistence: user changes speed mid-session, getTargetSpeed reflects it ---
-  it('session: user changes speed to 1.4, getTargetSpeed returns 1.4', async () => {
+  // --- User acts mid-session on site with rule → user speed wins ---
+  it('session: user changes speed to 1.4 on site with rule=2.0 → 1.4', async () => {
     const config = window.VSC.videoSpeedConfig;
     await config.load();
     config.settings.rememberSpeed = false;
-    config.settings.lastSpeed = 1.0;
+    config.settings.lastSpeed = null;
     config.settings.siteDefaultSpeed = 2.0;
 
     const ctrl = makeController(config);
     expect(ctrl.getTargetSpeed()).toBe(2.0);
 
-    // Simulate user changing speed (setSpeed updates lastSpeed in-memory)
+    // Simulate user changing speed (setSpeed writes real number)
     config.settings.lastSpeed = 1.4;
     expect(ctrl.getTargetSpeed()).toBe(1.4);
+  });
+
+  // --- User resets to 1.0 on site with rule=2.0 → 1.0 sticks (#1506) ---
+  it('user reset to 1.0 on site with siteDefault=2.0 → 1.0 (not overridden)', async () => {
+    const config = window.VSC.videoSpeedConfig;
+    await config.load();
+    config.settings.rememberSpeed = false;
+    config.settings.lastSpeed = 1.0; // user pressed Reset — real number, not null
+    config.settings.siteDefaultSpeed = 2.0;
+
+    const ctrl = makeController(config);
+    expect(ctrl.getTargetSpeed()).toBe(1.0);
   });
 
   // --- Edge: siteDefaultSpeed=null treated same as undefined ---
@@ -141,7 +141,7 @@ describe('SpeedResolution', () => {
     const config = window.VSC.videoSpeedConfig;
     await config.load();
     config.settings.rememberSpeed = false;
-    config.settings.lastSpeed = 1.0;
+    config.settings.lastSpeed = null;
     config.settings.siteDefaultSpeed = null;
 
     const ctrl = makeController(config);

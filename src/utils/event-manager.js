@@ -274,7 +274,7 @@ class EventManager {
       }
 
       // RESTORE our authoritative value since external change already happened
-      if (video.vsc && this.config.settings.lastSpeed !== undefined) {
+      if (video.vsc && this.config.settings.lastSpeed !== null) {
         const authoritativeSpeed = this.config.settings.lastSpeed;
         if (Math.abs(video.playbackRate - authoritativeSpeed) > 0.01) {
           window.VSC.logger.info(

@@ -40,7 +40,7 @@ describe('Settings', () => {
 
     expect(settings).toBeDefined();
     expect(settings.enabled).toBe(true);
-    expect(settings.lastSpeed).toBe(1.0);
+    expect(settings.lastSpeed).toBeNull(); // no user choice yet
   });
 
   it('VideoSpeedConfig should save settings to storage', async () => {
@@ -241,7 +241,7 @@ describe('Settings', () => {
     window.VSC.matchSiteRule = original;
   });
 
-  it('lastSpeed reset to 1.0 when rememberSpeed is false', async () => {
+  it('lastSpeed reset to null when rememberSpeed is false', async () => {
     // Inject lastSpeed=1.5 into mock storage
     globalThis.chrome.storage.sync.get = (keys, callback) => {
       setTimeout(() => {
@@ -252,7 +252,7 @@ describe('Settings', () => {
 
     const config = new window.VSC.VideoSpeedConfig();
     await config.load();
-    expect(config.settings.lastSpeed).toBe(1.0);
+    expect(config.settings.lastSpeed).toBeNull();
   });
 
   it('lastSpeed preserved when rememberSpeed is true', async () => {
@@ -283,8 +283,8 @@ describe('Settings', () => {
 
     await config.load();
 
-    // lastSpeed should be reset to 1.0, siteDefaultSpeed should be 2.3
-    expect(config.settings.lastSpeed).toBe(1.0);
+    // lastSpeed null (site rule wins), siteDefaultSpeed should be 2.3
+    expect(config.settings.lastSpeed).toBeNull();
     expect(config.settings.siteDefaultSpeed).toBe(2.3);
 
     window.VSC.matchSiteRule = original;

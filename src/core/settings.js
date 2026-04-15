@@ -140,14 +140,21 @@ if (!window.VSC.VideoSpeedConfig) {
         }
 
         // Apply loaded settings
-        this.settings.lastSpeed = Number(storage.lastSpeed);
         this.settings.rememberSpeed = Boolean(storage.rememberSpeed);
 
-        // When rememberSpeed is OFF, discard the stored lastSpeed so that
-        // site rule baselines (siteDefaultSpeed) win on fresh page loads
-        // instead of a stale speed from a previous session.
-        if (!this.settings.rememberSpeed) {
-          this.settings.lastSpeed = 1.0;
+        // lastSpeed = null means "no user choice yet this session."
+        // getTargetSpeed() falls through to siteDefaultSpeed or 1.0.
+        //
+        // Priority on fresh load:
+        //   1. siteDefaultSpeed (per-site rule) — always wins if configured
+        //   2. lastSpeed from storage (rememberSpeed=true, no per-site rule)
+        //   3. null → baseline 1.0
+        if (this.settings.siteDefaultSpeed) {
+          this.settings.lastSpeed = null;
+        } else if (this.settings.rememberSpeed) {
+          this.settings.lastSpeed = Number(storage.lastSpeed) || null;
+        } else {
+          this.settings.lastSpeed = null;
         }
         this.settings.exclusiveKeys = Boolean(storage.exclusiveKeys);
         this.settings.audioBoolean = Boolean(storage.audioBoolean);

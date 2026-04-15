@@ -121,10 +121,10 @@ describe('SettingsRaceCondition', () => {
     // Simulate: content script set speed to 2.0, then options page saves startHidden
     const storage = getMockStorage();
 
-    // T=0: config loads (sees lastSpeed=1.0)
+    // T=0: config loads (lastSpeed=null, no user choice yet)
     const config = new window.VSC.VideoSpeedConfig();
     await config.load();
-    expect(config.settings.lastSpeed).toBe(1.0);
+    expect(config.settings.lastSpeed).toBeNull();
 
     // T=1: "another context" changes speed to 2.0 in storage
     // (simulated by direct storage write)
@@ -248,7 +248,7 @@ describe('SettingsRaceCondition', () => {
     const config = new window.VSC.VideoSpeedConfig();
     await config.load();
 
-    expect(config.settings.lastSpeed).toBe(1.0);
+    expect(config.settings.lastSpeed).toBeNull();
 
     // Simulate external write (e.g., from content script in another tab)
     simulateExternalStorageWrite({ lastSpeed: 3.0 });
@@ -280,7 +280,7 @@ describe('SettingsRaceCondition', () => {
     simulateExternalStorageWrite({ unknownKey: 'somevalue' });
 
     // Existing settings should be unchanged
-    expect(config.settings.lastSpeed).toBe(1.0);
+    expect(config.settings.lastSpeed).toBeNull();
   });
 
   it('onChanged listener ignores undefined newValue', async () => {
