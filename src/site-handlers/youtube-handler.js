@@ -20,8 +20,25 @@ class YouTubeHandler extends window.VSC.BaseSiteHandler {
    * @returns {Object} Positioning information
    */
   getControllerPosition(parent, _video) {
-    // YouTube requires special positioning to ensure controller is on top
-    const targetParent = parent.parentElement;
+    // YouTube requires special positioning to ensure controller is on top.
+    // Default: insert into the .html5-video-player (one level up from video container).
+    let targetParent = parent.parentElement;
+
+    // Embedded YouTube has a #player-controls overlay that sits as a sibling of
+    // .html5-video-player and creates a separate stacking context, intercepting
+    // all pointer events. Our controller inside .html5-video-player can't z-index
+    // above it. Fix: insert into #player (the common parent) so our controller
+    // participates in the same stacking context as the overlay.
+    // NOTE: Must scope the query to targetParent.parentElement to avoid falsely matching
+    // a global #player-controls element on the desktop site, which promotes insertion
+    // into the tightly-managed ytd-player > div#container and crashes Polymer.
+    if (
+      targetParent &&
+      targetParent.parentElement &&
+      targetParent.parentElement.querySelector('#player-controls')
+    ) {
+      targetParent = targetParent.parentElement;
+    }
 
     return {
       insertionPoint: targetParent,
@@ -30,26 +47,10 @@ class YouTubeHandler extends window.VSC.BaseSiteHandler {
     };
   }
 
-  /**
-   * Initialize YouTube-specific functionality
-   * @param {Document} document - Document object
-   */
-  initialize(document) {
-    super.initialize(document);
-
-    // Set up YouTube-specific CSS handling
-    this.setupYouTubeCSS();
-  }
-
-  /**
-   * Set up YouTube-specific CSS classes and positioning
-   * @private
-   */
-  setupYouTubeCSS() {
-    // YouTube has complex CSS that can hide our controller
-    // The inject.css already handles this, but we could add dynamic adjustments here
-    window.VSC.logger.debug('YouTube CSS setup completed');
-  }
+  // YouTube autohide is handled purely via CSS using :host-context() in
+  // shadow-dom.js — no MutationObserver needed. The shadow DOM rule
+  // :host-context(.ytp-autohide) matches when any ancestor of the
+  // <vsc-controller> host has the ytp-autohide class.
 
   /**
    * Check if video should be ignored on YouTube
@@ -90,7 +91,7 @@ class YouTubeHandler extends window.VSC.BaseSiteHandler {
             const iframeVideos = iframeDoc.querySelectorAll('video');
             videos.push(...Array.from(iframeVideos));
           }
-        } catch (e) {
+        } catch {
           // Cross-origin iframe, ignore
         }
       });
@@ -99,16 +100,6 @@ class YouTubeHandler extends window.VSC.BaseSiteHandler {
     }
 
     return videos;
-  }
-
-  /**
-   * Handle YouTube-specific player state changes
-   * @param {HTMLMediaElement} video - Video element
-   */
-  onPlayerStateChange(_video) {
-    // YouTube fires custom events we could listen to
-    // This could be used for better integration with YouTube's player
-    window.VSC.logger.debug('YouTube player state changed');
   }
 }
 

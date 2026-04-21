@@ -4,104 +4,98 @@
  */
 
 import { installChromeMock, cleanupChromeMock, resetMockStorage } from '../helpers/chrome-mock.js';
-import { SimpleTestRunner, assert, createMockVideo, createMockDOM } from '../helpers/test-utils.js';
-import { loadCoreModules } from '../helpers/module-loader.js';
+import { createMockVideo, createMockDOM } from '../helpers/test-utils.js';
 
 // Load all required modules
-await loadCoreModules();
 
-const runner = new SimpleTestRunner();
 let mockDOM;
 
-runner.beforeEach(() => {
-  installChromeMock();
-  resetMockStorage();
-  mockDOM = createMockDOM();
-});
+describe('ModuleIntegration', () => {
+  beforeEach(() => {
+    installChromeMock();
+    resetMockStorage();
+    mockDOM = createMockDOM();
+  });
 
-runner.afterEach(() => {
-  cleanupChromeMock();
-  if (mockDOM) {
-    mockDOM.cleanup();
-  }
-});
+  afterEach(() => {
+    cleanupChromeMock();
+    if (mockDOM) {
+      mockDOM.cleanup();
+    }
+  });
 
-runner.test('All core modules should load correctly', async () => {
-  try {
-    assert.exists(window.VSC, 'VSC namespace should exist');
-    assert.exists(window.VSC.videoSpeedConfig, 'VideoSpeedConfig should exist');
-    assert.exists(window.VSC.VideoController, 'VideoController should exist');
-    assert.exists(window.VSC.ActionHandler, 'ActionHandler should exist');
-    assert.exists(window.VSC.EventManager, 'EventManager should exist');
-    assert.exists(window.VSC.siteHandlerManager, 'siteHandlerManager should exist');
-  } catch (error) {
-    throw new Error(`Module import failed: ${error.message}`);
-  }
-});
+  it('All core modules should load correctly', async () => {
+    try {
+      expect(window.VSC).toBeDefined();
+      expect(window.VSC.videoSpeedConfig).toBeDefined();
+      expect(window.VSC.VideoController).toBeDefined();
+      expect(window.VSC.ActionHandler).toBeDefined();
+      expect(window.VSC.EventManager).toBeDefined();
+      expect(window.VSC.siteHandlerManager).toBeDefined();
+    } catch (error) {
+      throw new Error(`Module import failed: ${error.message}`, { cause: error });
+    }
+  });
 
-runner.test('Site handlers should be configurable', async () => {
-  const siteHandlerManager = window.VSC.siteHandlerManager;
+  it('Site handlers should be configurable', async () => {
+    const siteHandlerManager = window.VSC.siteHandlerManager;
 
-  const handler = siteHandlerManager.getCurrentHandler();
-  assert.exists(handler);
+    const handler = siteHandlerManager.getCurrentHandler();
+    expect(handler).toBeDefined();
 
-  // Should return positioning info
-  const mockVideo = createMockVideo();
-  const positioning = siteHandlerManager.getControllerPosition(mockDOM.container, mockVideo);
-  assert.exists(positioning);
-  assert.exists(positioning.insertionPoint);
-});
+    // Should return positioning info
+    const mockVideo = createMockVideo();
+    const positioning = siteHandlerManager.getControllerPosition(mockDOM.container, mockVideo);
+    expect(positioning).toBeDefined();
+    expect(positioning.insertionPoint).toBeDefined();
+  });
 
-runner.test('Settings should integrate with ActionHandler', async () => {
-  const config = window.VSC.videoSpeedConfig;
-  await config.load();
+  it('Settings should integrate with ActionHandler', async () => {
+    const config = window.VSC.videoSpeedConfig;
+    await config.load();
 
-  const eventManager = new window.VSC.EventManager(config, null);
-  // ActionHandler is created but not used in this test - just ensuring it can be instantiated
-  new window.VSC.ActionHandler(config, eventManager);
+    const eventManager = new window.VSC.EventManager(config, null);
+    // ActionHandler is created but not used in this test - just ensuring it can be instantiated
+    new window.VSC.ActionHandler(config, eventManager);
 
-  // Should be able to get key bindings
-  const fasterValue = config.getKeyBinding('faster');
-  assert.equal(typeof fasterValue, 'number');
-});
+    // Should be able to get key bindings
+    const fasterValue = config.getKeyBinding('faster');
+    expect(typeof fasterValue).toBe('number');
+  });
 
-runner.test('VideoController should integrate with all dependencies', async () => {
-  const config = window.VSC.videoSpeedConfig;
-  await config.load();
+  it('VideoController should integrate with all dependencies', async () => {
+    const config = window.VSC.videoSpeedConfig;
+    await config.load();
 
-  const eventManager = new window.VSC.EventManager(config, null);
-  const actionHandler = new window.VSC.ActionHandler(config, eventManager);
+    const eventManager = new window.VSC.EventManager(config, null);
+    const actionHandler = new window.VSC.ActionHandler(config, eventManager);
 
-  const mockVideo = createMockVideo();
-  mockDOM.container.appendChild(mockVideo);
+    const mockVideo = createMockVideo();
+    mockDOM.container.appendChild(mockVideo);
 
-  const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
+    const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
 
-  assert.exists(controller);
-  assert.exists(controller.div);
-  assert.exists(mockVideo.vsc);
-});
+    expect(controller).toBeDefined();
+    expect(controller.div).toBeDefined();
+    expect(mockVideo.vsc).toBeDefined();
+  });
 
-runner.test('Event system should coordinate between modules', async () => {
-  const config = window.VSC.videoSpeedConfig;
-  await config.load();
+  it('Event system should coordinate between modules', async () => {
+    const config = window.VSC.videoSpeedConfig;
+    await config.load();
 
-  const eventManager = new window.VSC.EventManager(config, null);
-  const actionHandler = new window.VSC.ActionHandler(config, eventManager);
-  eventManager.actionHandler = actionHandler;
+    const eventManager = new window.VSC.EventManager(config, null);
+    const actionHandler = new window.VSC.ActionHandler(config, eventManager);
+    eventManager.actionHandler = actionHandler;
 
-  // Should be able to set up event listeners
-  eventManager.setupEventListeners(document);
+    // Should be able to set up event listeners
+    eventManager.setupEventListeners(document);
 
-  // Should be able to clean up
-  eventManager.cleanup();
+    // Should be able to clean up without throwing
+    eventManager.cleanup();
+  });
 
-  assert.true(true); // If we get here without errors, integration works
-});
-
-runner.test(
-  'startHidden setting should correctly control initial controller visibility',
-  async () => {
+  it('startHidden setting should correctly control initial controller visibility', async () => {
     const config = window.VSC.videoSpeedConfig;
     await config.load();
 
@@ -120,14 +114,8 @@ runner.test(
       actionHandler
     );
 
-    assert.false(
-      visibleController.div.classList.contains('vsc-hidden'),
-      'Controller should not have vsc-hidden class when startHidden is false'
-    );
-    assert.false(
-      visibleController.div.classList.contains('vsc-show'),
-      'Controller should not have vsc-show class when startHidden is false (uses natural visibility)'
-    );
+    expect(visibleController.div.classList.contains('vsc-hidden')).toBe(false);
+    expect(visibleController.div.classList.contains('vsc-show')).toBe(false);
 
     // Clean up first controller
     visibleController.remove();
@@ -144,18 +132,10 @@ runner.test(
       actionHandler
     );
 
-    assert.true(
-      hiddenController.div.classList.contains('vsc-hidden'),
-      'Controller should have vsc-hidden class when startHidden is true'
-    );
-    assert.false(
-      hiddenController.div.classList.contains('vsc-show'),
-      'Controller should not have vsc-show class when startHidden is true'
-    );
+    expect(hiddenController.div.classList.contains('vsc-hidden')).toBe(true);
+    expect(hiddenController.div.classList.contains('vsc-show')).toBe(false);
 
     // Clean up
     hiddenController.remove();
-  }
-);
-
-export { runner as moduleIntegrationTestRunner };
+  });
+});

@@ -1,6 +1,6 @@
 /**
  * Action handling system for Video Speed Controller
- * 
+ *
  */
 
 window.VSC = window.VSC || {};
@@ -19,9 +19,9 @@ class ActionHandler {
    */
   runAction(action, value, e) {
     // Use state manager for complete media discovery (includes shadow DOM)
-    const mediaTags = window.VSC.stateManager ?
-      window.VSC.stateManager.getControlledElements() :
-      []; // No fallback - state manager should always be available
+    const mediaTags = window.VSC.stateManager
+      ? window.VSC.stateManager.getControlledElements()
+      : []; // No fallback - state manager should always be available
 
     // Get the controller that was used if called from a button press event
     let targetController = null;
@@ -41,8 +41,6 @@ class ActionHandler {
       if (e && targetController && !(targetController === controller)) {
         return;
       }
-
-      this.eventManager.showController(controller);
 
       if (!v.classList.contains('vsc-cancelled')) {
         this.executeAction(action, value, v, e);
@@ -86,7 +84,7 @@ class ActionHandler {
 
       case 'reset':
         window.VSC.logger.debug('Reset speed');
-        this.resetSpeed(video, value);
+        this.resetSpeed(video, value, this.config.getKeyBinding('fast'));
         break;
 
       case 'display': {
@@ -98,33 +96,29 @@ class ActionHandler {
           return;
         }
 
-        controller.classList.add('vsc-manual');
+        // Clear any pending flash timer before toggling
+        if (controller.flashTimer !== undefined) {
+          clearTimeout(controller.flashTimer);
+          controller.flashTimer = undefined;
+        }
+
         controller.classList.toggle('vsc-hidden');
+        // vsc-manual means "user has expressed intent about this controller's
+        // visibility." Set on first toggle, never cleared for the lifetime of
+        // the controller. This protects against YouTube autohide overriding
+        // the user's show intent, and prevents flash from overriding hide intent.
+        controller.classList.add('vsc-manual');
 
-        // Clear any pending timers that might interfere with manual toggle
-        // This prevents delays when manually hiding/showing the controller
-        if (controller.blinkTimeOut !== undefined) {
-          clearTimeout(controller.blinkTimeOut);
-          controller.blinkTimeOut = undefined;
-        }
-
-        // Also clear EventManager timer if it exists
-        if (this.eventManager && this.eventManager.timer) {
-          clearTimeout(this.eventManager.timer);
-          this.eventManager.timer = null;
-        }
-
-        // Remove vsc-show class immediately when manually hiding
         if (controller.classList.contains('vsc-hidden')) {
+          // User is hiding — also remove any pending flash override
           controller.classList.remove('vsc-show');
-          window.VSC.logger.debug('Removed vsc-show class for immediate manual hide');
         }
         break;
       }
 
       case 'blink':
         window.VSC.logger.debug('Showing controller momentarily');
-        this.blinkController(video.vsc.div, value);
+        this.flashController(video.vsc.div, value);
         break;
 
       case 'drag':
@@ -132,7 +126,8 @@ class ActionHandler {
         break;
 
       case 'fast':
-        this.resetSpeed(video, value);
+        window.VSC.logger.debug('Preferred speed');
+        this.resetSpeed(video, value, this.config.getKeyBinding('reset'));
         break;
 
       case 'pause':
@@ -210,16 +205,19 @@ class ActionHandler {
   }
 
   /**
-   * Reset speed with memory toggle functionality
+   * Reset speed with memory toggle functionality.
+   *
+   * Behavior:
+   *   - Not at target → remember current speed, jump to target.
+   *   - At target with memory → restore remembered speed, clear memory.
+   *   - At target without memory → cross-toggle to the other action's speed
+   *     (e.g. reset at 1.0x jumps to preferred speed, preferred at 1.8x jumps to reset speed).
+   *
    * @param {HTMLMediaElement} video - Video element
-   * @param {number} target - Target speed (usually 1.0)
+   * @param {number} target - Target speed for this action
+   * @param {number} [crossTarget] - Target speed of the paired action (for cross-toggle)
    */
-  resetSpeed(video, target) {
-    // Show controller for visual feedback (will be shown by adjustSpeed but we can show it early)
-    if (video.vsc?.div && this.eventManager) {
-      this.eventManager.showController(video.vsc.div);
-    }
-
+  resetSpeed(video, target, crossTarget) {
     if (!video.vsc) {
       window.VSC.logger.warn('resetSpeed called on video without controller');
       return;
@@ -228,18 +226,20 @@ class ActionHandler {
     const currentSpeed = video.playbackRate;
 
     if (currentSpeed === target) {
-      // At target speed - restore remembered speed if we have one, otherwise reset to target
       if (video.vsc.speedBeforeReset !== null) {
+        // Restore remembered speed
         window.VSC.logger.info(`Restoring remembered speed: ${video.vsc.speedBeforeReset}`);
         const rememberedSpeed = video.vsc.speedBeforeReset;
-        video.vsc.speedBeforeReset = null; // Clear memory after use
+        video.vsc.speedBeforeReset = null;
         this.adjustSpeed(video, rememberedSpeed);
-      } else {
-        window.VSC.logger.info(`Already at reset speed ${target}, no change`);
-        // Already at target and nothing remembered - no action needed
+      } else if (crossTarget && crossTarget !== target) {
+        // Cross-toggle: jump to the paired action's target
+        window.VSC.logger.info(`Cross-toggle from ${target} to ${crossTarget}`);
+        video.vsc.speedBeforeReset = currentSpeed;
+        this.adjustSpeed(video, crossTarget);
       }
     } else {
-      // Not at target speed - remember current and reset to target
+      // Remember current speed and jump to target
       window.VSC.logger.info(`Remembering speed ${currentSpeed} and resetting to ${target}`);
       video.vsc.speedBeforeReset = currentSpeed;
       this.adjustSpeed(video, target);
@@ -282,12 +282,29 @@ class ActionHandler {
   }
 
   /**
-   * Jump to time marker
+   * Jump to time marker, or jump back to previous position if already at marker
    * @param {HTMLMediaElement} video - Video element
    */
   jumpToMark(video) {
-    window.VSC.logger.debug('Recalling marker');
-    if (video.vsc.mark && typeof video.vsc.mark === 'number') {
+    if (
+      video.vsc.mark === null ||
+      video.vsc.mark === undefined ||
+      typeof video.vsc.mark !== 'number'
+    ) {
+      return;
+    }
+
+    const currentTime = video.currentTime;
+
+    if (video.vsc.positionBeforeJump !== null && Math.abs(currentTime - video.vsc.mark) < 0.05) {
+      // At the marker — toggle back to where we came from
+      window.VSC.logger.debug('Jumping back to pre-marker position');
+      video.currentTime = video.vsc.positionBeforeJump;
+      video.vsc.positionBeforeJump = null;
+    } else {
+      // Jump to marker, remembering current position
+      window.VSC.logger.debug('Jumping to marker');
+      video.vsc.positionBeforeJump = currentTime;
       video.currentTime = video.vsc.mark;
     }
   }
@@ -306,37 +323,50 @@ class ActionHandler {
 
   /**
    * Show controller briefly
+   * Flash controller briefly for visual feedback.
+   * Single entry point for all temporary visibility — replaces both
+   * blinkController and EventManager.showController.
    * @param {HTMLElement} controller - Controller element
-   * @param {number} duration - Duration in ms (default 1000)
+   * @param {number} duration - Duration in ms (default 2000)
    */
-  blinkController(controller, duration) {
-    // Don't hide audio controllers after blinking - audio elements are often invisible by design
-    // but should maintain visible controllers for user interaction
+  flashController(controller, duration) {
+    // startHidden is a hard preference — never flash, regardless of V toggle.
+    if (this.config.settings.startHidden) {
+      window.VSC.logger.debug('flashController skipped: startHidden is a hard preference');
+      return;
+    }
+
+    // User explicitly hid this controller (V key) — respect that choice.
+    if (
+      controller.classList.contains('vsc-manual') &&
+      controller.classList.contains('vsc-hidden')
+    ) {
+      window.VSC.logger.debug('flashController skipped: user manually hid controller');
+      return;
+    }
+
     const isAudioController = this.isAudioController(controller);
 
-    // Always clear any existing timeout first
-    if (controller.blinkTimeOut !== undefined) {
-      clearTimeout(controller.blinkTimeOut);
-      controller.blinkTimeOut = undefined;
+    // Always clear any existing timer first (timer invariant: one per controller)
+    if (controller.flashTimer !== undefined) {
+      clearTimeout(controller.flashTimer);
+      controller.flashTimer = undefined;
     }
 
     // Add vsc-show class to temporarily show controller
-    // This overrides vsc-hidden via CSS specificity
+    // This overrides vsc-hidden and vsc-autohide via CSS source order
     controller.classList.add('vsc-show');
     window.VSC.logger.debug('Showing controller temporarily with vsc-show class');
 
     // For audio controllers, don't set timeout to hide again
     if (!isAudioController) {
-      controller.blinkTimeOut = setTimeout(
-        () => {
-          controller.classList.remove('vsc-show');
-          controller.blinkTimeOut = undefined;
-          window.VSC.logger.debug('Removing vsc-show class after timeout');
-        },
-        duration ? duration : 2500
-      );
+      controller.flashTimer = setTimeout(() => {
+        controller.classList.remove('vsc-show');
+        controller.flashTimer = undefined;
+        window.VSC.logger.debug('Removing vsc-show class after flash timeout');
+      }, duration || 2000);
     } else {
-      window.VSC.logger.debug('Audio controller blink - keeping vsc-show class');
+      window.VSC.logger.debug('Audio controller flash - keeping vsc-show class');
     }
   }
 
@@ -348,8 +378,9 @@ class ActionHandler {
    */
   isAudioController(controller) {
     // Find associated media element using state manager
-    const mediaElements = window.VSC.stateManager ?
-      window.VSC.stateManager.getControlledElements() : [];
+    const mediaElements = window.VSC.stateManager
+      ? window.VSC.stateManager.getControlledElements()
+      : [];
     for (const media of mediaElements) {
       if (media.vsc && media.vsc.div === controller) {
         return media.tagName === 'AUDIO';
@@ -370,14 +401,6 @@ class ActionHandler {
    */
   adjustSpeed(video, value, options = {}) {
     return window.VSC.logger.withContext(video, () => {
-      const { relative = false, source = 'internal' } = options;
-
-      // DEBUG: Log all adjustSpeed calls to trace the mystery
-      window.VSC.logger.debug(`adjustSpeed called: value=${value}, relative=${relative}, source=${source}`);
-      const stack = new Error().stack;
-      const stackLines = stack.split('\n').slice(1, 8); // First 7 stack frames
-      window.VSC.logger.debug(`adjustSpeed call stack: ${stackLines.join(' -> ')}`);
-
       // Validate input
       if (!video || !video.vsc) {
         window.VSC.logger.warn('adjustSpeed called on video without controller');
@@ -400,18 +423,21 @@ class ActionHandler {
   _adjustSpeedInternal(video, value, options) {
     const { relative = false, source = 'internal' } = options;
 
-    // Show controller for visual feedback when speed is changed
-    if (video.vsc?.div && this.eventManager) {
-      this.eventManager.showController(video.vsc.div);
-    }
-
     // Calculate target speed
     let targetSpeed;
     if (relative) {
       // For relative changes, add to current speed
       const currentSpeed = video.playbackRate < 0.1 ? 0.0 : video.playbackRate;
       targetSpeed = currentSpeed + value;
-      window.VSC.logger.debug(`Relative speed calculation: currentSpeed=${currentSpeed} + ${value} = ${targetSpeed}`);
+
+      // Snap to 1.0x when crossing the 1.0 boundary
+      if ((currentSpeed > 1.0 && targetSpeed < 1.0) || (currentSpeed < 1.0 && targetSpeed > 1.0)) {
+        targetSpeed = 1.0;
+      }
+
+      window.VSC.logger.debug(
+        `Relative speed calculation: currentSpeed=${currentSpeed} + ${value} = ${targetSpeed}`
+      );
     } else {
       // For absolute changes, use value directly
       targetSpeed = value;
@@ -427,25 +453,20 @@ class ActionHandler {
     // Round to 2 decimal places to avoid floating point issues
     targetSpeed = Number(targetSpeed.toFixed(2));
 
-    // Handle force mode for external changes - restore user preference
-    if (source === 'external' && this.config.settings.forceLastSavedSpeed) {
-      // In force mode, use lastSpeed instead of allowing external change
-      targetSpeed = this.config.settings.lastSpeed || 1.0;
-      window.VSC.logger.debug(`Force mode: blocking external change, restoring to ${targetSpeed}`);
-    }
-
-    // Use the proven setSpeed implementation with source tracking
+    // Fight detection is enforced upstream in event-manager.js.
+    // External changes that reach here have already been approved (fight surrendered or speed matched).
     this.setSpeed(video, targetSpeed, source);
   }
 
   /**
-   * Get user's preferred speed (always global lastSpeed)
-   * Public method for tests - matches VideoController.getTargetSpeed() logic
-   * @param {HTMLMediaElement} video - Video element (for API compatibility) 
-   * @returns {number} Current preferred speed (always lastSpeed regardless of rememberSpeed setting)
+   * Get user's preferred speed, respecting rememberSpeed setting.
+   * @returns {number} Preferred speed (lastSpeed when remembering, 1.0 otherwise)
    */
-  getPreferredSpeed(video) {
-    return this.config.settings.lastSpeed || 1.0;
+  getPreferredSpeed() {
+    if (this.config.settings.rememberSpeed) {
+      return this.config.settings.lastSpeed || 1.0;
+    }
+    return 1.0;
   }
 
   /**
@@ -459,11 +480,28 @@ class ActionHandler {
     const speedValue = speed.toFixed(2);
     const numericSpeed = Number(speedValue);
 
-    // 1. Set the actual playback rate
-    video.playbackRate = numericSpeed;
+    // 1. Update lastSpeed BEFORE touching playbackRate. The playbackRate
+    //    assignment (step 3) fires a synchronous native ratechange event.
+    //    The cooldown handler reads lastSpeed as the "authoritative" speed
+    //    to restore during fight-back. If lastSpeed is stale, the handler
+    //    undoes the very change we're making.
+    //    'init' source: skip — don't arm fight-back with the initialization
+    //    default; let the first real user/site action establish authority.
+    if (source !== 'external' && source !== 'init') {
+      this.config.settings.lastSpeed = numericSpeed;
+    }
 
-    // 2. Always dispatch synthetic event with source tracking
-    // This allows EventManager to distinguish our changes from external ones
+    // 2. Start cooldown — the playbackRate assignment below triggers a
+    //    native ratechange event synchronously. Without cooldown active,
+    //    handleRateChange would misclassify it as an external site change.
+    if (this.eventManager) {
+      this.eventManager.refreshCoolDown();
+    }
+
+    // 3. Set the actual playback rate via site handler (native ratechange fires here, blocked by cooldown)
+    window.VSC.siteHandlerManager.handleSpeedChange(video, numericSpeed);
+
+    // 4. Dispatch synthetic event with source tracking
     video.dispatchEvent(
       new CustomEvent('ratechange', {
         bubbles: true,
@@ -471,12 +509,12 @@ class ActionHandler {
         detail: {
           origin: 'videoSpeed',
           speed: speedValue,
-          source: source
+          source: source,
         },
       })
     );
 
-    // 3. Update UI indicator
+    // 5. Update UI indicator
     const speedIndicator = video.vsc?.speedIndicator;
     if (!speedIndicator) {
       window.VSC.logger.warn(
@@ -486,31 +524,16 @@ class ActionHandler {
     }
     speedIndicator.textContent = numericSpeed.toFixed(2);
 
-    // 4. Always update page-scoped speed preference
-    window.VSC.logger.debug(`Updating config.settings.lastSpeed from ${this.config.settings.lastSpeed} to ${numericSpeed}`);
-    this.config.settings.lastSpeed = numericSpeed;
-
-    // 5. Save to storage ONLY if rememberSpeed is enabled for cross-session persistence
-    if (this.config.settings.rememberSpeed) {
-      window.VSC.logger.debug(`Saving lastSpeed ${numericSpeed} to Chrome storage`);
-      this.config.save({
-        lastSpeed: this.config.settings.lastSpeed,
-      });
-    } else {
-      window.VSC.logger.debug('NOT saving to storage - rememberSpeed is false');
+    // 6. Persist to storage only if rememberSpeed is enabled
+    if (source !== 'external' && this.config.settings.rememberSpeed) {
+      this.config.save({ lastSpeed: numericSpeed });
     }
 
-    // 6. Show controller briefly for visual feedback
+    // 7. Flash controller briefly for visual feedback
     if (video.vsc?.div) {
-      this.blinkController(video.vsc.div);
-    }
-
-    // 7. Refresh cooldown to prevent rapid changes
-    if (this.eventManager) {
-      this.eventManager.refreshCoolDown();
+      this.flashController(video.vsc.div);
     }
   }
-
 }
 
 // Create singleton instance

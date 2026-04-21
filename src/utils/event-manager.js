@@ -10,10 +10,19 @@ class EventManager {
     this.actionHandler = actionHandler;
     this.listeners = new Map();
     this.coolDown = false;
-    this.timer = null;
 
     // Event deduplication to prevent duplicate key processing
     this.lastKeyEventSignature = null;
+
+    // Fight detection: track how many times a site resets our speed
+    this.fightCount = 0;
+    this.fightTimer = null;
+
+    // User gesture tracking: timestamp of the last user interaction we did NOT
+    // handle (click on page UI, unhandled key). A ratechange arriving within
+    // USER_GESTURE_WINDOW_MS of this is treated as intentional and accepted
+    // immediately rather than fought — handles native site speed controls.
+    this.lastUserInteractionAt = 0;
   }
 
   /**
@@ -23,6 +32,7 @@ class EventManager {
   setupEventListeners(document) {
     this.setupKeyboardShortcuts(document);
     this.setupRateChangeListener(document);
+    this.setupUserGestureListener(document);
   }
 
   /**
@@ -36,7 +46,7 @@ class EventManager {
       if (window.VSC.inIframe()) {
         docs.push(window.top.document);
       }
-    } catch (e) {
+    } catch {
       // Cross-origin iframe - ignore
     }
 
@@ -62,24 +72,28 @@ class EventManager {
    * @private
    */
   handleKeydown(event) {
-    const keyCode = event.keyCode;
+    window.VSC.logger.verbose(
+      `Processing keydown event: code=${event.code}, key=${event.key}, keyCode=${event.keyCode}`
+    );
 
-    window.VSC.logger.verbose(`Processing keydown event: key=${event.key}, keyCode=${keyCode}`);
+    // IME composition and dead key guard
+    // 'Process' / keyCode 229 = IME composition active (CJK input)
+    // 'Dead' = first keypress of a dead key sequence (e.g. ^ on French keyboard)
+    if (
+      event.isComposing ||
+      event.keyCode === 229 ||
+      event.key === 'Process' ||
+      event.key === 'Dead'
+    ) {
+      return;
+    }
 
-    // Event deduplication - prevent same key event from being processed multiple times
-    const eventSignature = `${keyCode}_${event.timeStamp}_${event.type}`;
-
+    // Event deduplication — include code+key to handle empty-code cases
+    const eventSignature = `${event.code}_${event.key}_${event.timeStamp}_${event.type}`;
     if (this.lastKeyEventSignature === eventSignature) {
       return;
     }
-
     this.lastKeyEventSignature = eventSignature;
-
-    // Ignore if following modifier is active
-    if (this.hasActiveModifier(event)) {
-      window.VSC.logger.debug(`Keydown event ignored due to active modifier: ${keyCode}`);
-      return;
-    }
 
     // Ignore keydown event if typing in an input box
     if (this.isTypingContext(event.target)) {
@@ -87,46 +101,101 @@ class EventManager {
     }
 
     // Ignore keydown event if no media elements are present
-    const mediaElements = window.VSC.stateManager ?
-      window.VSC.stateManager.getControlledElements() : [];
+    const mediaElements = window.VSC.stateManager
+      ? window.VSC.stateManager.getControlledElements()
+      : [];
     if (!mediaElements.length) {
       return false;
     }
 
-    // Find matching key binding
-    const keyBinding = this.config.settings.keyBindings.find((item) => item.key === keyCode);
+    // Find matching key binding using the three-tier algorithm
+    const keyBinding = this.findMatchingBinding(event);
 
     if (keyBinding) {
       this.actionHandler.runAction(keyBinding.action, keyBinding.value, event);
 
-      if (keyBinding.force === true || keyBinding.force === 'true') {
-        // Disable website's key bindings
+      if (this.config.settings.exclusiveKeys) {
         event.preventDefault();
         event.stopPropagation();
       }
     } else {
-      window.VSC.logger.verbose(`No key binding found for keyCode: ${keyCode}`);
+      // Unhandled key — could be a site shortcut (e.g. YouTube's < > speed keys).
+      // Mark as user interaction so an immediately-following ratechange is accepted.
+      this.lastUserInteractionAt = event.timeStamp;
+      window.VSC.logger.verbose(
+        `No key binding found for code=${event.code}, keyCode=${event.keyCode}`
+      );
     }
 
     return false;
   }
 
   /**
-   * Check if any modifier keys are active
-   * @param {KeyboardEvent} event - Keyboard event
-   * @returns {boolean} True if modifiers are active
+   * Three-tier binding match: chord → simple → legacy fallback.
+   *
+   * When event.code is empty/Unidentified (virtual keyboards, remote desktop,
+   * accessibility devices), falls back to keyCode matching for all bindings.
+   *
+   * @param {KeyboardEvent} event
+   * @returns {Object|undefined} Matching binding, or undefined
    * @private
    */
-  hasActiveModifier(event) {
-    return (
-      !event.getModifierState ||
-      event.getModifierState('Alt') ||
-      event.getModifierState('Control') ||
-      event.getModifierState('Fn') ||
-      event.getModifierState('Meta') ||
-      event.getModifierState('Hyper') ||
-      event.getModifierState('OS')
+  findMatchingBinding(event) {
+    const bindings = this.config.settings.keyBindings;
+    const code = event.code;
+    const keyCode = event.keyCode;
+    const ctrl = !!event.ctrlKey;
+    const alt = !!event.altKey;
+    const meta = !!event.metaKey;
+    const shift = !!event.shiftKey;
+    const hasModifier = ctrl || alt || meta;
+
+    // Runtime fallback: if event.code is empty or unidentified, match on keyCode
+    if (!code || code === 'Unidentified') {
+      return bindings.find((b) => {
+        const bKey = b.keyCode ?? b.key;
+        if (bKey !== keyCode) {
+          return false;
+        }
+        return b.modifiers
+          ? EventManager.modifiersMatch(b.modifiers, ctrl, alt, meta, shift)
+          : !hasModifier;
+      });
+    }
+
+    // Tier 1: Chord match — bindings WITH modifiers, all must match exactly
+    const chordMatch = bindings.find(
+      (b) =>
+        b.modifiers &&
+        b.code === code &&
+        EventManager.modifiersMatch(b.modifiers, ctrl, alt, meta, shift)
     );
+    if (chordMatch) {
+      return chordMatch;
+    }
+
+    // Tier 2: Simple match — bindings WITHOUT modifiers, no Ctrl/Alt/Meta active
+    if (!hasModifier) {
+      const simpleMatch = bindings.find((b) => !b.modifiers && b.code === code);
+      if (simpleMatch) {
+        return simpleMatch;
+      }
+    }
+
+    // Tier 3: Legacy fallback — bindings missing code field, match on keyCode
+    if (!hasModifier) {
+      const legacyMatch = bindings.find((b) => {
+        if (b.code !== null && b.code !== undefined) {
+          return false;
+        }
+        return (b.keyCode ?? b.key) === keyCode;
+      });
+      if (legacyMatch) {
+        return legacyMatch;
+      }
+    }
+
+    return undefined;
   }
 
   /**
@@ -139,6 +208,31 @@ class EventManager {
     return (
       target.nodeName === 'INPUT' || target.nodeName === 'TEXTAREA' || target.isContentEditable
     );
+  }
+
+  /**
+   * Track user interactions that originate outside the VSC controller.
+   * Clicks on YouTube's speed menu (or any site's native speed UI) land here.
+   * Unhandled keyboard events (e.g. YouTube's < > shortcuts) land in handleKeydown.
+   * Both update lastUserInteractionAt so handleRateChange can distinguish
+   * intentional speed changes from automatic site-initiated resets.
+   * @param {Document} document
+   * @private
+   */
+  setupUserGestureListener(document) {
+    const clickHandler = (event) => {
+      // Skip clicks on our own controller (shadow host retargeted at boundary)
+      if (event.target?.closest?.('vsc-controller')) {
+        return;
+      }
+      this.lastUserInteractionAt = event.timeStamp;
+    };
+    document.addEventListener('click', clickHandler, true);
+
+    if (!this.listeners.has(document)) {
+      this.listeners.set(document, []);
+    }
+    this.listeners.get(document).push({ type: 'click', handler: clickHandler, useCapture: true });
   }
 
   /**
@@ -172,12 +266,21 @@ class EventManager {
       // Get the video element to restore authoritative speed
       const video = event.composedPath ? event.composedPath()[0] : event.target;
 
+      // Don't fight back during video initialization — the player's own setup
+      // fires ratechange at readyState=0; overwriting it can break the player.
+      if (video.readyState < 1) {
+        window.VSC.logger.debug('Skipping cooldown fight-back during video init (readyState < 1)');
+        return;
+      }
+
       // RESTORE our authoritative value since external change already happened
-      if (video.vsc && this.config.settings.lastSpeed !== undefined) {
+      if (video.vsc && this.config.settings.lastSpeed !== null) {
         const authoritativeSpeed = this.config.settings.lastSpeed;
         if (Math.abs(video.playbackRate - authoritativeSpeed) > 0.01) {
-          window.VSC.logger.info(`Restoring speed during cooldown from external ${video.playbackRate} to authoritative ${authoritativeSpeed}`);
-          video.playbackRate = authoritativeSpeed;
+          window.VSC.logger.info(
+            `Restoring speed during cooldown from external ${video.playbackRate} to authoritative ${authoritativeSpeed}`
+          );
+          window.VSC.siteHandlerManager.handleSpeedChange(video, authoritativeSpeed);
         }
       }
 
@@ -201,38 +304,84 @@ class EventManager {
       return;
     }
 
-    // Force last saved speed mode - restore authoritative speed for ANY external change
-    if (this.config.settings.forceLastSavedSpeed) {
-      if (event.detail && event.detail.origin === 'videoSpeed') {
-        video.playbackRate = Number(event.detail.speed);
-      } else {
-        const authoritativeSpeed = this.config.settings.lastSpeed || 1.0;
-        window.VSC.logger.info(`Force mode: restoring external ${video.playbackRate} to authoritative ${authoritativeSpeed}`);
-        video.playbackRate = authoritativeSpeed;
-      }
-      event.stopImmediatePropagation();
-      return;
-    }
-
     // Ignore external ratechanges during video initialization
     if (video.readyState < 1) {
-      window.VSC.logger.debug('Ignoring external ratechange during video initialization (readyState < 1)');
-      event.stopImmediatePropagation();
+      window.VSC.logger.debug(
+        'Ignoring external ratechange during video initialization (readyState < 1)'
+      );
       return;
     }
 
-    // External change - use adjustSpeed with external source
+    // Ignore spurious external ratechanges below our supported MIN
     const rawExternalRate = typeof video.playbackRate === 'number' ? video.playbackRate : NaN;
-
-    // Ignore spurious external ratechanges below our supported MIN to avoid persisting clamped 0.07
     const min = window.VSC.Constants.SPEED_LIMITS.MIN;
-    // Use <= to also catch values that Chrome already clamped to MIN (e.g., site set 0)
     if (!isNaN(rawExternalRate) && rawExternalRate <= min) {
       window.VSC.logger.debug(
         `Ignoring external ratechange below MIN: raw=${rawExternalRate}, MIN=${min}`
       );
-      event.stopImmediatePropagation();
       return;
+    }
+
+    // Fight detection: if site changed speed away from what we set, decide whether
+    // to fight back or accept. User-initiated changes (detected via gesture window)
+    // are accepted immediately — this allows native site controls (e.g. YouTube's
+    // speed menu or < > shortcuts) to coexist with our fight-back logic.
+    const authoritativeSpeed = this.config.settings.lastSpeed;
+
+    if (authoritativeSpeed && Math.abs(video.playbackRate - authoritativeSpeed) > 0.01) {
+      const timeSinceGesture = event.timeStamp - this.lastUserInteractionAt;
+      const isUserGesture = timeSinceGesture < EventManager.USER_GESTURE_WINDOW_MS;
+
+      if (isUserGesture) {
+        // User interacted with the site's native controls — accept immediately.
+        // Treat as internal so lastSpeed and storage are updated to match intent.
+        window.VSC.logger.info(
+          `Accepting site speed change as user-intentional (gesture ${timeSinceGesture}ms ago): ${video.playbackRate}`
+        );
+        this.fightCount = 0;
+        if (this.fightTimer) {
+          clearTimeout(this.fightTimer);
+          this.fightTimer = null;
+        }
+        this.lastUserInteractionAt = 0;
+        if (this.actionHandler) {
+          this.actionHandler.adjustSpeed(video, video.playbackRate);
+        }
+        return;
+      }
+
+      this.fightCount++;
+
+      // Reset fight count after a quiet period
+      if (this.fightTimer) {
+        clearTimeout(this.fightTimer);
+      }
+      this.fightTimer = setTimeout(() => {
+        this.fightCount = 0;
+        this.fightTimer = null;
+      }, EventManager.FIGHT_WINDOW_MS);
+
+      if (this.fightCount >= EventManager.MAX_FIGHT_COUNT) {
+        // Surrender — accept the site's speed
+        window.VSC.logger.info(
+          `Fight detection: surrendering after ${this.fightCount} resets. Accepting site speed ${video.playbackRate}`
+        );
+        this.fightCount = 0;
+        // Fall through to accept the external change below
+      } else {
+        // Fight back — restore our speed with exponential backoff
+        const cooldown = Math.min(
+          EventManager.BASE_COOLDOWN_MS * Math.pow(2, this.fightCount - 1),
+          EventManager.MAX_COOLDOWN_MS
+        );
+        window.VSC.logger.info(
+          `Fight detection: attempt ${this.fightCount}/${EventManager.MAX_FIGHT_COUNT}, re-applying ${authoritativeSpeed} (cooldown ${cooldown}ms)`
+        );
+        window.VSC.siteHandlerManager.handleSpeedChange(video, authoritativeSpeed);
+        this.refreshCoolDown(cooldown);
+        event.stopImmediatePropagation();
+        return;
+      }
     }
 
     if (this.actionHandler) {
@@ -240,16 +389,13 @@ class EventManager {
         source: 'external',
       });
     }
-
-    // Always stop propagation to prevent loops
-    event.stopImmediatePropagation();
   }
 
   /**
    * Start cooldown period to prevent event spam
    */
-  refreshCoolDown() {
-    window.VSC.logger.debug('Begin refreshCoolDown');
+  refreshCoolDown(duration = EventManager.BASE_COOLDOWN_MS) {
+    window.VSC.logger.debug(`Begin refreshCoolDown (${duration}ms)`);
 
     if (this.coolDown) {
       clearTimeout(this.coolDown);
@@ -257,40 +403,9 @@ class EventManager {
 
     this.coolDown = setTimeout(() => {
       this.coolDown = false;
-    }, EventManager.COOLDOWN_MS);
+    }, duration);
 
     window.VSC.logger.debug('End refreshCoolDown');
-  }
-
-  /**
-   * Show controller temporarily during speed changes or other automatic actions
-   * @param {Element} controller - Controller element
-   */
-  showController(controller) {
-    // When startHidden is enabled, only show temporary feedback if the user has
-    // previously interacted with this controller manually (vsc-manual class)
-    // This prevents unwanted controller appearances on pages where user wants them hidden
-    if (this.config.settings.startHidden && !controller.classList.contains('vsc-manual')) {
-      window.VSC.logger.info(
-        `Controller respecting startHidden setting - no temporary display (startHidden: ${this.config.settings.startHidden}, manual: ${controller.classList.contains('vsc-manual')})`
-      );
-      return;
-    }
-
-    window.VSC.logger.info(
-      `Showing controller temporarily (startHidden: ${this.config.settings.startHidden}, manual: ${controller.classList.contains('vsc-manual')})`
-    );
-    controller.classList.add('vsc-show');
-
-    if (this.timer) {
-      clearTimeout(this.timer);
-    }
-
-    this.timer = setTimeout(() => {
-      controller.classList.remove('vsc-show');
-      this.timer = null;
-      window.VSC.logger.debug('Hiding controller');
-    }, 2000);
   }
 
   /**
@@ -314,15 +429,37 @@ class EventManager {
       this.coolDown = false;
     }
 
-    if (this.timer) {
-      clearTimeout(this.timer);
-      this.timer = null;
+    if (this.fightTimer) {
+      clearTimeout(this.fightTimer);
+      this.fightTimer = null;
     }
+    this.fightCount = 0;
   }
 }
 
-// Cooldown duration (ms) for ratechange handling
-EventManager.COOLDOWN_MS = 200;
+/**
+ * Compare binding modifiers against event modifier state.
+ * @returns {boolean} True if all four modifiers match exactly.
+ */
+EventManager.modifiersMatch = function (mods, ctrl, alt, meta, shift) {
+  return mods.ctrl === ctrl && mods.alt === alt && mods.meta === meta && mods.shift === shift;
+};
+
+// Time window (ms) after a user interaction in which an external ratechange is
+// treated as user-intentional (site native controls) rather than fought back.
+EventManager.USER_GESTURE_WINDOW_MS = 300;
+
+// Base cooldown duration (ms) for ratechange handling; doubles each fight-back retry
+EventManager.BASE_COOLDOWN_MS = 200;
+
+// Maximum cooldown duration (ms) during fight-back backoff
+EventManager.MAX_COOLDOWN_MS = 2000;
+
+// Fight detection: surrender after this many rapid site-initiated resets
+EventManager.MAX_FIGHT_COUNT = 5;
+
+// Fight detection: reset fight count after this quiet period (ms)
+EventManager.FIGHT_WINDOW_MS = EventManager.MAX_COOLDOWN_MS + 1000;
 
 // Create singleton instance
 window.VSC.EventManager = EventManager;

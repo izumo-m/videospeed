@@ -2,11 +2,23 @@
  * Constants and default values for Video Speed Controller
  */
 
+// Keyboard identity maps — shared with background.js (service worker context).
+// esbuild inlines these into each bundle at build time.
+import {
+  PREDEFINED_CODE_MAP,
+  KEYCODE_TO_CODE,
+  displayKeyFromCode,
+  PREDEFINED_ACTIONS,
+  BLACKLISTED_CODES,
+  DEFAULT_BINDINGS,
+} from './key-maps.js';
+import { DEFAULT_CONTROLLER_CSS } from '../styles/controller-css-defaults.js';
+
 window.VSC = window.VSC || {};
+
 window.VSC.Constants = {};
 
 if (!window.VSC.Constants.DEFAULT_SETTINGS) {
-
   // Define constants directly first for ES6 exports
   const regStrip = /^[\r\t\f\v ]+|[\r\t\f\v ]+$/gm;
   const regEndsWithFlags = /\/(?!.*(.).*\1)[gimsuy]*$/;
@@ -15,32 +27,31 @@ if (!window.VSC.Constants.DEFAULT_SETTINGS) {
   window.VSC.Constants.regStrip = regStrip;
   window.VSC.Constants.regEndsWithFlags = regEndsWithFlags;
 
+  window.VSC.Constants.DEFAULT_CONTROLLER_CSS = DEFAULT_CONTROLLER_CSS;
+
   const DEFAULT_SETTINGS = {
+    schemaVersion: 1,
     lastSpeed: 1.0, // default 1x
     enabled: true, // default enabled
     rememberSpeed: false, // default: false
-    forceLastSavedSpeed: false, //default: false
+    exclusiveKeys: false, // default: false
     audioBoolean: true, // default: true (enable audio controller support)
     startHidden: false, // default: false
     controllerOpacity: 0.3, // default: 0.3
     controllerButtonSize: 14,
-    keyBindings: [
-      { action: 'slower', key: 83, value: 0.1, force: false, predefined: true }, // S
-      { action: 'faster', key: 68, value: 0.1, force: false, predefined: true }, // D
-      { action: 'rewind', key: 90, value: 10, force: false, predefined: true }, // Z
-      { action: 'advance', key: 88, value: 10, force: false, predefined: true }, // X
-      { action: 'reset', key: 82, value: 1.0, force: false, predefined: true }, // R
-      { action: 'fast', key: 71, value: 1.8, force: false, predefined: true }, // G
-      { action: 'display', key: 86, value: 0, force: false, predefined: true }, // V
-      { action: 'mark', key: 77, value: 0, force: false, predefined: true }, // M
-      { action: 'jump', key: 74, value: 0, force: false, predefined: true }, // J
-      { action: 'boost', key: 42, value: 5.0, force: false, predefined: false }, // B
-      { action: 'step-rewind', key: 60, value: 1, force: false, predefined: false }, // <
-      { action: 'step-advance', key: 62, value: 1, force: false, predefined: false }, // >
-
+    customCSS: '', // user's additional CSS injected alongside the built-in defaults
+    keyBindings: PREDEFINED_ACTIONS.map((action) => ({
+      action,
+      ...DEFAULT_BINDINGS[action],
+      predefined: true,
+    })),
+    siteRules: [
+      { pattern: 'www.instagram.com', enabled: false, speed: null },
+      { pattern: 'imgur.com', enabled: false, speed: null },
+      { pattern: 'teams.microsoft.com', enabled: false, speed: null },
+      { pattern: 'meet.google.com', enabled: false, speed: null },
     ],
     blacklist: `www.instagram.com
-x.com
 imgur.com
 teams.microsoft.com
 meet.google.com`.replace(regStrip, ''),
@@ -73,6 +84,8 @@ meet.google.com`.replace(regStrip, ''),
     ADJUST_SPEED: 'VSC_ADJUST_SPEED',
     RESET_SPEED: 'VSC_RESET_SPEED',
     TOGGLE_DISPLAY: 'VSC_TOGGLE_DISPLAY',
+    TEARDOWN: 'VSC_TEARDOWN',
+    REINIT: 'VSC_REINIT',
   };
 
   const SPEED_LIMITS = {
@@ -98,4 +111,9 @@ meet.google.com`.replace(regStrip, ''),
   window.VSC.Constants.SPEED_LIMITS = SPEED_LIMITS;
   window.VSC.Constants.CONTROLLER_SIZE_LIMITS = CONTROLLER_SIZE_LIMITS;
   window.VSC.Constants.CUSTOM_ACTIONS_NO_VALUES = CUSTOM_ACTIONS_NO_VALUES;
+  window.VSC.Constants.PREDEFINED_CODE_MAP = PREDEFINED_CODE_MAP;
+  window.VSC.Constants.KEYCODE_TO_CODE = KEYCODE_TO_CODE;
+  window.VSC.Constants.displayKeyFromCode = displayKeyFromCode;
+  window.VSC.Constants.BLACKLISTED_CODES = BLACKLISTED_CODES;
+  window.VSC.Constants.PREDEFINED_ACTIONS = PREDEFINED_ACTIONS;
 }

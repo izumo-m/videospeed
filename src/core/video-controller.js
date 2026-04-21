@@ -1,6 +1,6 @@
 /**
  * Video Controller class for managing individual video elements
- * 
+ *
  */
 
 window.VSC = window.VSC || {};
@@ -24,6 +24,7 @@ class VideoController {
 
     // Transient reset memory (not persisted, instance-specific)
     this.speedBeforeReset = null;
+    this.positionBeforeJump = null;
 
     // Attach controller to video element first (needed for adjustSpeed)
     target.vsc = this;
@@ -51,7 +52,11 @@ class VideoController {
   }
 
   /**
-   * Initialize video speed based on settings
+   * Initialize video speed based on settings.
+   *
+   * Uses source:'init' so setSpeed skips the lastSpeed update — during init
+   * we don't want to arm fight-back with a stale/default value that could
+   * conflict with the player's own initialization sequence.
    * @private
    */
   initializeSpeed() {
@@ -59,31 +64,54 @@ class VideoController {
 
     window.VSC.logger.debug(`Setting initial playbackRate to: ${targetSpeed}`);
 
-    // Use adjustSpeed for initial speed setting to ensure consistency
-    if (this.actionHandler && targetSpeed !== this.video.playbackRate) {
-      window.VSC.logger.debug('Setting initial speed via adjustSpeed');
-      this.actionHandler.adjustSpeed(this.video, targetSpeed, { source: 'internal' });
+    if (!this.actionHandler || targetSpeed === this.video.playbackRate) {
+      return;
+    }
+
+    // Defer until metadata is loaded — setting playbackRate before the player
+    // has initialized can race with the site's own init sequence.
+    if (this.video.readyState < 1) {
+      window.VSC.logger.debug('Deferring initializeSpeed until loadedmetadata');
+      const handler = () => {
+        this.video.removeEventListener('loadedmetadata', handler);
+        if (targetSpeed !== this.video.playbackRate) {
+          this.actionHandler.adjustSpeed(this.video, targetSpeed, { source: 'init' });
+        }
+      };
+      this.video.addEventListener('loadedmetadata', handler);
+    } else {
+      this.actionHandler.adjustSpeed(this.video, targetSpeed, { source: 'init' });
     }
   }
 
   /**
-   * Get target speed based on rememberSpeed setting and update reset binding
-   * @param {HTMLMediaElement} media - Optional media element (defaults to this.video)
+   * Get target speed for video initialization and event restoration.
+   *
+   * lastSpeed semantics: null = "no user choice this session", any number
+   * (including 1.0) = "user deliberately set this." setSpeed() writes a
+   * real number on every user action; load() initializes to null when a
+   * per-site rule exists or rememberSpeed is off.
+   *
+   * Fresh load priority:
+   *   1. siteDefaultSpeed (per-site rule) — always wins if configured
+   *   2. lastSpeed from storage (rememberSpeed=true, no per-site rule)
+   *   3. 1.0 fallback
+   * Mid-session: user's last setSpeed() call wins until next page load.
+   *
    * @returns {number} Target speed
    * @private
    */
-  getTargetSpeed(media = this.video) {
-    // Always start with current preferred speed (lastSpeed)
-    // The difference is whether changes get saved back to lastSpeed
-    const targetSpeed = this.config.settings.lastSpeed || 1.0;
+  getTargetSpeed() {
+    const baseline = this.config.settings.siteDefaultSpeed ?? 1.0;
+    const last = this.config.settings.lastSpeed;
 
-    if (this.config.settings.rememberSpeed) {
-      window.VSC.logger.debug(`Remember mode: using lastSpeed ${targetSpeed} (changes will be saved)`);
-    } else {
-      window.VSC.logger.debug(`Non-persistent mode: using lastSpeed ${targetSpeed} (changes won't be saved)`);
+    if (last !== null) {
+      window.VSC.logger.debug(`Using lastSpeed ${last} (baseline=${baseline})`);
+      return last;
     }
 
-    return targetSpeed;
+    window.VSC.logger.debug(`Using baseline ${baseline} (lastSpeed=${last})`);
+    return baseline;
   }
 
   /**
@@ -96,7 +124,6 @@ class VideoController {
 
     const document = this.video.ownerDocument;
     const speed = window.VSC.Constants.formatSpeed(this.video.playbackRate);
-    const position = window.VSC.ShadowDOMManager.calculatePosition(this.video);
 
     window.VSC.logger.debug(`Speed variable set to: ${speed}`);
 
@@ -121,21 +148,15 @@ class VideoController {
     // Apply all classes at once to prevent visible flash
     wrapper.className = cssClasses.join(' ');
 
-    // Set positioning styles with calculated position
-    // Only use positioning styles - rely on CSS classes for visibility
-    const styleText = `
-      position: absolute !important;
-      z-index: 9999999 !important;
-      top: ${position.top};
-      left: ${position.left};
-    `;
+    // IMPORTANT: Wrapper gets z-index ONLY — no position, no top, no left.
+    // Position is controlled by inject.css (default: absolute; site overrides: relative).
+    // Adding inline position here would defeat CSS site overrides via specificity.
+    wrapper.style.cssText = 'z-index: 9999999 !important;';
 
-    wrapper.style.cssText = styleText;
-
-    // Create shadow DOM with relative positioning inside shadow root
+    // Create shadow DOM with placeholder position (set after insertion)
     const shadow = window.VSC.ShadowDOMManager.createShadowDOM(wrapper, {
-      top: '0px', // Position relative to shadow root since wrapper is already positioned
-      left: '0px', // Position relative to shadow root since wrapper is already positioned
+      top: '0px',
+      left: '0px',
       speed: speed,
       opacity: this.config.settings.controllerOpacity,
       buttonSize: this.config.settings.controllerButtonSize,
@@ -147,8 +168,20 @@ class VideoController {
     // Store speed indicator reference
     this.speedIndicator = window.VSC.ShadowDOMManager.getSpeedIndicator(shadow);
 
-    // Insert into DOM based on site-specific rules
+    // Insert into DOM FIRST — position calculation needs the wrapper in the DOM
     this.insertIntoDOM(document, wrapper);
+
+    // THEN compute position based on actual DOM state.
+    // If a CSS override sets the wrapper to position:relative (e.g. YouTube, Netflix),
+    // the inner controller stays at (0,0) and the CSS nudge handles placement.
+    // Otherwise (wrapper is absolute), compute coordinates for generic sites.
+    const computedPosition = getComputedStyle(wrapper).position;
+    if (computedPosition !== 'relative') {
+      const position = window.VSC.ShadowDOMManager.calculatePosition(this.video);
+      const innerController = window.VSC.ShadowDOMManager.getController(shadow);
+      innerController.style.top = position.top;
+      innerController.style.left = position.left;
+    }
 
     window.VSC.logger.debug('initializeControls End');
     return wrapper;
@@ -199,21 +232,27 @@ class VideoController {
     const mediaEventAction = (event) => {
       const targetSpeed = this.getTargetSpeed(event.target);
 
+      // Lifecycle restore, not a user choice — don't persist to lastSpeed.
       window.VSC.logger.info(`Media event ${event.type}: restoring speed to ${targetSpeed}`);
-      this.actionHandler.adjustSpeed(event.target, targetSpeed, { source: 'internal' });
+      this.actionHandler.adjustSpeed(event.target, targetSpeed, { source: 'init' });
     };
 
     // Bind event handlers
     this.handlePlay = mediaEventAction.bind(this);
-    this.handleSeek = mediaEventAction.bind(this);
+    // Don't restore speed on seeked if the video hasn't loaded data yet —
+    // the player may still be initializing.
+    this.handleSeek = (event) => {
+      if (event.target.readyState < 2) {
+        return;
+      }
+      mediaEventAction.call(this, event);
+    };
 
     // Add essential event listeners for speed restoration
     this.video.addEventListener('play', this.handlePlay);
     this.video.addEventListener('seeked', this.handleSeek);
 
-    window.VSC.logger.debug(
-      'Added essential media event handlers: play, seeked'
-    );
+    window.VSC.logger.debug('Added essential media event handlers: play, seeked');
   }
 
   /**

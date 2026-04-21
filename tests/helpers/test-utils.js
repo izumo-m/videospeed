@@ -33,6 +33,11 @@ export function createMockVideo(options = {}) {
       writable: true,
       configurable: true,
     },
+    readyState: {
+      value: options.readyState ?? 1,
+      writable: true,
+      configurable: true,
+    },
     paused: {
       value: options.paused || false,
       writable: true,
@@ -178,10 +183,10 @@ export function createMockEvent(type, properties = {}) {
 }
 
 /**
- * Create a mock keyboard event
+ * Create a mock keyboard event with v2 identity fields.
  * @param {string} type - Event type (keydown, keyup, keypress)
  * @param {number} keyCode - Key code
- * @param {Object} options - Additional event options
+ * @param {Object} options - Additional event options (code, key, ctrlKey, altKey, shiftKey, metaKey, isComposing, etc.)
  * @returns {KeyboardEvent} Mock keyboard event
  */
 export function createMockKeyboardEvent(type, keyCode, options = {}) {
@@ -189,116 +194,26 @@ export function createMockKeyboardEvent(type, keyCode, options = {}) {
     bubbles: true,
     cancelable: true,
     keyCode,
+    code: options.code || '',
+    key: options.key || '',
+    ctrlKey: options.ctrlKey || false,
+    altKey: options.altKey || false,
+    shiftKey: options.shiftKey || false,
+    metaKey: options.metaKey || false,
     ...options,
   });
 
-  // Add keyCode property for older compatibility
+  // Override read-only properties for testing
   Object.defineProperty(event, 'keyCode', { value: keyCode });
+  if (options.code !== undefined) {
+    Object.defineProperty(event, 'code', { value: options.code });
+  }
+  if (options.key !== undefined) {
+    Object.defineProperty(event, 'key', { value: options.key });
+  }
+  if (options.isComposing !== undefined) {
+    Object.defineProperty(event, 'isComposing', { value: options.isComposing });
+  }
 
   return event;
-}
-
-/**
- * Simple assertion helpers
- */
-export const assert = {
-  equal: (actual, expected, message) => {
-    if (actual !== expected) {
-      throw new Error(message || `Expected ${expected}, got ${actual}`);
-    }
-  },
-
-  true: (value, message) => {
-    if (value !== true) {
-      throw new Error(message || `Expected true, got ${value}`);
-    }
-  },
-
-  false: (value, message) => {
-    if (value !== false) {
-      throw new Error(message || `Expected false, got ${value}`);
-    }
-  },
-
-  exists: (value, message) => {
-    if (value === null || value === undefined) {
-      throw new Error(message || `Expected value to exist, got ${value}`);
-    }
-  },
-
-  throws: (fn, message) => {
-    let threw = false;
-    try {
-      fn();
-    } catch (e) {
-      threw = true;
-    }
-    if (!threw) {
-      throw new Error(message || 'Expected function to throw');
-    }
-  },
-
-  deepEqual: (actual, expected, message) => {
-    const actualStr = JSON.stringify(actual);
-    const expectedStr = JSON.stringify(expected);
-    if (actualStr !== expectedStr) {
-      throw new Error(message || `Expected ${expectedStr}, got ${actualStr}`);
-    }
-  },
-};
-
-/**
- * Simple test runner
- */
-export class SimpleTestRunner {
-  constructor() {
-    this.tests = [];
-    this.beforeEachHooks = [];
-    this.afterEachHooks = [];
-  }
-
-  beforeEach(fn) {
-    this.beforeEachHooks.push(fn);
-  }
-
-  afterEach(fn) {
-    this.afterEachHooks.push(fn);
-  }
-
-  test(name, fn) {
-    this.tests.push({ name, fn });
-  }
-
-  async run() {
-    let passed = 0;
-    let failed = 0;
-
-    for (const test of this.tests) {
-      try {
-        // Run before each hooks
-        for (const hook of this.beforeEachHooks) {
-          await hook();
-        }
-
-        // Run test
-        await test.fn();
-
-        // Run after each hooks
-        for (const hook of this.afterEachHooks) {
-          await hook();
-        }
-
-        console.log(`✅ ${test.name}`);
-        passed++;
-      } catch (error) {
-        console.error(`❌ ${test.name}: ${error.message}`);
-        failed++;
-      }
-    }
-
-    console.log(`\nResults: ${passed} passed, ${failed} failed`);
-    console.groupEnd();
-
-    return { passed, failed };
-  }
 }

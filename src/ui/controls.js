@@ -23,17 +23,31 @@ class ControlsManager {
   }
 
   /**
-   * Set up drag handler for speed indicator
+   * Set up drag and double-click-to-reset handlers for speed indicator
+   * Uses pointer events for unified mouse + touch support
    * @param {ShadowRoot} shadow - Shadow root
    * @private
    */
   setupDragHandler(shadow) {
     const draggable = shadow.querySelector('.draggable');
 
+    // Pointer-based drag (unified mouse + touch)
     draggable.addEventListener(
-      'mousedown',
+      'pointerdown',
       (e) => {
         this.actionHandler.runAction(e.target.dataset['action'], false, e);
+        e.stopPropagation();
+        e.preventDefault();
+      },
+      true
+    );
+
+    // Double-click / double-tap to reset speed
+    draggable.addEventListener(
+      'dblclick',
+      (e) => {
+        const resetTarget = this.config.getKeyBinding('reset') || 1.0;
+        this.actionHandler.runAction('reset', resetTarget, e);
         e.stopPropagation();
         e.preventDefault();
       },
@@ -91,9 +105,30 @@ class ControlsManager {
   setupWheelHandler(shadow, video) {
     const controller = shadow.querySelector('#controller');
 
+    // Hover dwell gate: only allow wheel events after the cursor has rested on the
+    // controller for HOVER_DWELL_MS. This prevents accidental speed changes when
+    // scrolling through feed-based sites (Twitter, Reddit) where the cursor briefly
+    // passes over the controller. See #1352.
+    const HOVER_DWELL_MS = 300;
+    let hoverStart = 0;
+
+    controller.addEventListener('mouseenter', (e) => {
+      hoverStart = e.timeStamp;
+    });
+
+    controller.addEventListener('mouseleave', () => {
+      hoverStart = 0;
+    });
+
     controller.addEventListener(
       'wheel',
       (event) => {
+        // Reject wheel events before hover dwell threshold is met
+        if (event.timeStamp - hoverStart < HOVER_DWELL_MS) {
+          window.VSC.logger.debug('Wheel ignored: hover dwell threshold not met');
+          return;
+        }
+
         // Detect and filter touchpad events to prevent interference during page scrolling
         if (event.deltaMode === event.DOM_DELTA_PIXEL) {
           // Chrome/Safari/Edge: Use magnitude to distinguish mouse wheel (>50px) from touchpad (<50px)

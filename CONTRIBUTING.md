@@ -7,8 +7,30 @@ If you would like to help, getting started is easy.
 
 ## Get Started
 
+### Windows Prerequisites
+
+The build scripts and tests are cross-platform, but Git hooks (Husky) require
+a POSIX shell. Windows users need:
+
+1. **[Git for Windows](https://git-scm.com/download/win)** — provides the
+   `sh.exe` that Husky hooks run under. Use Git Bash or a terminal backed by
+   Git's bundled shell.
+2. **Node.js >= 22.13** — install via any version manager that reads `.nvmrc`
+   ([fnm](https://github.com/Schniz/fnm), [nvm-windows](https://github.com/coreybutler/nvm-windows),
+   [volta](https://volta.sh/), etc.). Make sure Node is available in both your
+   regular terminal and Git Bash.
+3. **Husky + Node in hooks** — Husky hooks run in a non-interactive shell where
+   your shell profile isn't sourced. If hooks fail with "node not found", add
+   your version manager's init to `~/.config/husky/init.sh` (Husky sources this
+   before every hook). For example with fnm:
+   ```sh
+   echo 'eval "$(fnm env)"' >> ~/.config/husky/init.sh
+   ```
+
+### Contribution Process
+
 1. You must have a github account and be logged in
-2. Open https://github.com/igrigorik/videospeed/
+2. Open <https://github.com/igrigorik/videospeed/>
 3. Fork the repo by clicking the "Fork" link on the top-right corner of the page
 4. Once the fork is ready, clone to your local PC
 
@@ -49,16 +71,31 @@ If you would like to help, getting started is easy.
 7. Next, open Chrome/Brave/Chromium and enable developer mode via
    `Settings > Extensions > Manage Extensions` and toggle `Developer mode` in
    the top-right corner.
-8. Click `Load unpacked` and browse to the folder you cloned videospeed to.
-9. Try out your changes, make sure they work as expected
-10. Commit and push your changes to github
+
+8. Install dependencies
 
    ```sh
-   git commit -m "Awesome description of some awesome changes."
-   git push
+   npm install
    ```
 
-11. Open your branch up on the github website then click `New pull request` and
+9. Build the extension
+
+   ```sh
+   npm run build
+   ```
+
+10. Click `Load unpacked` and select the `dist/` folder (the build output).
+
+11. Try out your changes, make sure they work as expected
+
+12. Commit and push your changes to github
+
+    ```sh
+    git commit -m "Awesome description of some awesome changes."
+    git push
+    ```
+
+13. Open your branch up on the github website then click `New pull request` and
     write up a description of your changes.
 
 ## Optional

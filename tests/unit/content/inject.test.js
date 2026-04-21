@@ -3,209 +3,329 @@
  * Testing the fix for video elements without parentElement
  */
 
-import { installChromeMock, cleanupChromeMock, resetMockStorage } from '../../helpers/chrome-mock.js';
-import { SimpleTestRunner, assert, createMockVideo, createMockDOM } from '../../helpers/test-utils.js';
-import { loadInjectModules } from '../../helpers/module-loader.js';
+import {
+  installChromeMock,
+  cleanupChromeMock,
+  resetMockStorage,
+} from '../../helpers/chrome-mock.js';
+import { createMockVideo, createMockDOM } from '../../helpers/test-utils.js';
 
 // Load all required modules
-await loadInjectModules();
 
-const runner = new SimpleTestRunner();
 let mockDOM;
 let extension;
 
-runner.beforeEach(() => {
-  installChromeMock();
-  resetMockStorage();
-  mockDOM = createMockDOM();
+describe('Inject', () => {
+  beforeEach(() => {
+    installChromeMock();
+    resetMockStorage();
+    mockDOM = createMockDOM();
 
-  // Initialize site handler manager for tests
-  if (window.VSC && window.VSC.siteHandlerManager) {
-    window.VSC.siteHandlerManager.initialize(document);
-  }
-});
-
-runner.afterEach(() => {
-  cleanupChromeMock();
-  if (mockDOM) {
-    mockDOM.cleanup();
-  }
-  if (extension) {
-    extension = null;
-  }
-
-  // Clean up any remaining video elements
-  const videos = document.querySelectorAll('video');
-  videos.forEach(video => {
-    if (video.vsc) {
-      try {
-        video.vsc.remove();
-      } catch (e) {
-        // Ignore cleanup errors
-      }
-    }
-    if (video.parentNode) {
-      try {
-        video.parentNode.removeChild(video);
-      } catch (e) {
-        // Ignore cleanup errors
-      }
+    // Initialize site handler manager for tests
+    if (window.VSC && window.VSC.siteHandlerManager) {
+      window.VSC.siteHandlerManager.initialize(document);
     }
   });
-});
 
-/**
- * Create a video element without parentElement but with parentNode
- * This simulates shadow DOM scenarios where parentElement is undefined
- */
-function createVideoWithoutParentElement() {
-  const video = createMockVideo();
-  const parentNode = document.createElement('div');
+  afterEach(() => {
+    cleanupChromeMock();
+    if (mockDOM) {
+      mockDOM.cleanup();
+    }
+    if (extension) {
+      extension = null;
+    }
 
-  // Simulate shadow DOM scenario where parentElement is undefined
-  Object.defineProperty(video, 'parentElement', {
-    value: null,
-    writable: false,
-    configurable: true
+    // Clean up any remaining video elements
+    const videos = document.querySelectorAll('video');
+    videos.forEach((video) => {
+      if (video.vsc) {
+        try {
+          video.vsc.remove();
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+      if (video.parentNode) {
+        try {
+          video.parentNode.removeChild(video);
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+    });
   });
 
-  Object.defineProperty(video, 'parentNode', {
-    value: parentNode,
-    writable: false,
-    configurable: true
-  });
+  /**
+   * Create a video element without parentElement but with parentNode
+   * This simulates shadow DOM scenarios where parentElement is undefined
+   */
+  function createVideoWithoutParentElement() {
+    const video = createMockVideo({ readyState: 4 });
+    const parentNode = document.createElement('div');
 
-  // Mock isConnected property for validity check
-  Object.defineProperty(video, 'isConnected', {
-    value: true,
-    writable: false,
-    configurable: true
-  });
-
-  return { video, parentNode };
-}
-
-runner.test('onVideoFound should handle video elements without parentElement', async () => {
-  // Use the global VSC_controller instance
-  extension = window.VSC_controller;
-
-  // Ensure extension is initialized
-  if (!extension) {
-    assert.true(false, 'VSC_controller should be available on window');
-    return;
-  }
-
-  try {
-    // Create a video element without parentElement but with parentNode
-    const { video, parentNode } = createVideoWithoutParentElement();
-
-    // Test the onVideoFound method directly - this is the core functionality
-    extension.onVideoFound(video, parentNode);
-
-    // Verify that the video controller was attached
-    assert.exists(video.vsc, 'Video controller should be attached to the video element');
-    assert.true(video.vsc instanceof window.VSC.VideoController, 'Should create VideoController instance');
-
-    // Verify that the controller was initialized with the correct parent (parentNode fallback)
-    assert.equal(video.vsc.parent, parentNode, 'VideoController should use parentNode when parentElement is null');
-
-  } catch (error) {
-    console.error('Test error:', error);
-    assert.true(false, `Test should not throw error: ${error.message}`);
-  }
-});
-
-runner.test('onVideoFound should prefer parentElement when available', async () => {
-  // Use the global VSC_controller instance
-  extension = window.VSC_controller;
-
-  // Ensure extension is initialized
-  if (!extension) {
-    assert.true(false, 'VSC_controller should be available on window');
-    return;
-  }
-
-  try {
-    // Create a normal video element with both parentElement and parentNode
-    const video = createMockVideo();
-    const parentElement = document.createElement('div');
-    const parentNode = document.createElement('span'); // Different from parentElement
-
+    // Simulate shadow DOM scenario where parentElement is undefined
     Object.defineProperty(video, 'parentElement', {
-      value: parentElement,
+      value: null,
       writable: false,
-      configurable: true
+      configurable: true,
     });
 
     Object.defineProperty(video, 'parentNode', {
       value: parentNode,
       writable: false,
-      configurable: true
+      configurable: true,
     });
 
     // Mock isConnected property for validity check
     Object.defineProperty(video, 'isConnected', {
       value: true,
       writable: false,
-      configurable: true
+      configurable: true,
     });
 
-    // Test onVideoFound with parentElement available
+    return { video, parentNode };
+  }
+
+  it('onVideoFound should handle video elements without parentElement', async () => {
+    extension = window.VSC_controller;
+    expect(extension).toBeDefined();
+
+    const { video, parentNode } = createVideoWithoutParentElement();
+
     extension.onVideoFound(video, parentNode);
 
-    // Verify that the video controller was attached
-    assert.exists(video.vsc, 'Video controller should be attached to the video element');
+    expect(video.vsc).toBeDefined();
+    expect(video.vsc instanceof window.VSC.VideoController).toBe(true);
+    expect(video.vsc.parent).toBe(parentNode);
+  });
 
-    // Verify that the controller was initialized with video.parentElement (not the passed parent)
+  it('onVideoFound should prefer parentElement when available', async () => {
+    extension = window.VSC_controller;
+    expect(extension).toBeDefined();
+
+    const video = createMockVideo({ readyState: 4 });
+    const parentElement = document.createElement('div');
+    const parentNode = document.createElement('span');
+
+    Object.defineProperty(video, 'parentElement', {
+      value: parentElement,
+      writable: false,
+      configurable: true,
+    });
+
+    Object.defineProperty(video, 'parentNode', {
+      value: parentNode,
+      writable: false,
+      configurable: true,
+    });
+
+    Object.defineProperty(video, 'isConnected', {
+      value: true,
+      writable: false,
+      configurable: true,
+    });
+
+    extension.onVideoFound(video, parentNode);
+
+    expect(video.vsc).toBeDefined();
     // VideoController constructor uses target.parentElement || parent
-    assert.equal(video.vsc.parent, parentElement, 'VideoController should prefer video.parentElement when available');
+    expect(video.vsc.parent).toBe(parentElement);
+  });
 
-  } catch (error) {
-    assert.true(false, `Test should not throw error: ${error.message}`);
-  }
-});
+  it('onVideoFound defers controller when readyState < 2 and video has src', () => {
+    extension = window.VSC_controller;
+    expect(extension).toBeDefined();
 
-runner.test('onVideoFound should handle video with neither parentElement nor parentNode', async () => {
-  // Use the global VSC_controller instance
-  extension = window.VSC_controller;
+    // readyState=1 with a src → should defer, not attach immediately
+    const video = createMockVideo({ readyState: 1 });
+    const parent = document.createElement('div');
 
-  // Verify extension is available
-  assert.exists(extension, 'VSC_controller should be available on window');
+    Object.defineProperty(video, 'isConnected', {
+      value: true,
+      writable: false,
+      configurable: true,
+    });
 
-  try {
-    // Create a video element with no parent references
-    const video = createMockVideo();
+    extension.onVideoFound(video, parent);
+
+    // Controller should NOT be attached yet — waiting for loadeddata
+    expect(video.vsc).toBeUndefined();
+  });
+
+  it('onVideoFound attaches immediately when readyState >= 2', () => {
+    extension = window.VSC_controller;
+    expect(extension).toBeDefined();
+
+    const video = createMockVideo({ readyState: 4 });
+    const parent = document.createElement('div');
+
+    Object.defineProperty(video, 'isConnected', {
+      value: true,
+      writable: false,
+      configurable: true,
+    });
+
+    extension.onVideoFound(video, parent);
+
+    // Controller should be attached immediately
+    expect(video.vsc).toBeDefined();
+    expect(video.vsc instanceof window.VSC.VideoController).toBe(true);
+  });
+
+  it('onVideoFound defers controller when video has no src (no-source placeholder)', () => {
+    extension = window.VSC_controller;
+    expect(extension).toBeDefined();
+
+    // readyState=0, no src → MUST defer, because injecting into raw uninitialized DOM crashes Polymer
+    const video = createMockVideo({ readyState: 0, currentSrc: '' });
+    video.addEventListener = vi.fn();
+    const parent = document.createElement('div');
+
+    Object.defineProperty(video, 'isConnected', {
+      value: true,
+      writable: false,
+      configurable: true,
+    });
+
+    extension.onVideoFound(video, parent);
+
+    expect(video.vsc).toBeUndefined();
+    // Verify event listener was added
+    expect(video.addEventListener).toHaveBeenCalledWith(
+      'loadeddata',
+      expect.any(Function),
+      expect.objectContaining({ once: true })
+    );
+  });
+
+  it('onVideoFound should handle video with neither parentElement nor parentNode', async () => {
+    extension = window.VSC_controller;
+    expect(extension).toBeDefined();
+
+    const video = createMockVideo({ readyState: 4 });
     const fallbackParent = document.createElement('div');
 
     Object.defineProperty(video, 'parentElement', {
       value: null,
       writable: false,
-      configurable: true
+      configurable: true,
     });
 
     Object.defineProperty(video, 'parentNode', {
       value: null,
       writable: false,
-      configurable: true
+      configurable: true,
     });
 
-    // Mock isConnected property for validity check
     Object.defineProperty(video, 'isConnected', {
       value: true,
       writable: false,
-      configurable: true
+      configurable: true,
     });
 
-    // This should not throw an error even with no parent references
+    // Should not throw even with no parent references
     extension.onVideoFound(video, fallbackParent);
 
-    // Verify basic functionality
-    assert.exists(video.vsc, 'Video controller should be attached even without parent references');
-    assert.equal(video.vsc.parent, fallbackParent, 'VideoController should use provided fallback parent');
+    expect(video.vsc).toBeDefined();
+    expect(video.vsc.parent).toBe(fallbackParent);
+  });
 
-  } catch (error) {
-    assert.true(false, `Test should not throw error: ${error.message}`);
+  // --- CSS injection: adoptedStyleSheets composition ---
+
+  /** Helper: reset extension CSS state so injectControllerCSS can re-run. */
+  function resetCSSState(ext) {
+    document.adoptedStyleSheets = (document.adoptedStyleSheets || []).filter(
+      (s) => s !== ext._controllerSheet && s !== ext._customSheet
+    );
+    ext._controllerSheet = null;
+    ext._customSheet = null;
   }
-});
 
-export { runner as injectTestRunner }; 
+  it('injectControllerCSS adds default sheet to adoptedStyleSheets', () => {
+    extension = window.VSC_controller;
+    resetCSSState(extension);
+    extension.config.settings.customCSS = '';
+
+    extension.injectControllerCSS();
+
+    expect(extension._controllerSheet).not.toBeNull();
+    expect(document.adoptedStyleSheets).toContain(extension._controllerSheet);
+  });
+
+  it('injectControllerCSS adds both default and custom sheets when customCSS is set', () => {
+    extension = window.VSC_controller;
+    resetCSSState(extension);
+    extension.config.settings.customCSS = 'vsc-controller { top: 42px; }';
+
+    extension.injectControllerCSS();
+
+    expect(extension._controllerSheet).not.toBeNull();
+    expect(extension._customSheet).not.toBeNull();
+    expect(document.adoptedStyleSheets).toContain(extension._controllerSheet);
+    expect(document.adoptedStyleSheets).toContain(extension._customSheet);
+  });
+
+  it('injectControllerCSS skips custom sheet when customCSS is empty', () => {
+    extension = window.VSC_controller;
+    resetCSSState(extension);
+    extension.config.settings.customCSS = '';
+
+    extension.injectControllerCSS();
+
+    expect(extension._controllerSheet).not.toBeNull();
+    expect(extension._customSheet).toBeNull();
+  });
+
+  it('injectControllerCSS is idempotent (no-op on second call)', () => {
+    extension = window.VSC_controller;
+    resetCSSState(extension);
+    extension.config.settings.customCSS = '';
+
+    extension.injectControllerCSS();
+    const countAfterFirst = document.adoptedStyleSheets.length;
+    extension.injectControllerCSS();
+
+    expect(document.adoptedStyleSheets.length).toBe(countAfterFirst);
+  });
+
+  it('setupCSSLiveUpdates adds custom sheet on storage change', () => {
+    extension = window.VSC_controller;
+    resetCSSState(extension);
+    extension.config.settings.customCSS = '';
+
+    extension.injectControllerCSS();
+    // deferDOMWork is async — register listener explicitly for unit test
+    extension.setupCSSLiveUpdates();
+    expect(extension._customSheet).toBeNull();
+
+    document.documentElement.dispatchEvent(
+      new CustomEvent('VSC_STORAGE_CHANGED', {
+        detail: { customCSS: { newValue: 'vsc-controller { color: red; }' } },
+      })
+    );
+
+    expect(extension._customSheet).not.toBeNull();
+    expect(document.adoptedStyleSheets).toContain(extension._customSheet);
+    expect(document.adoptedStyleSheets).toContain(extension._controllerSheet);
+  });
+
+  it('setupCSSLiveUpdates removes custom sheet when customCSS cleared', () => {
+    extension = window.VSC_controller;
+    resetCSSState(extension);
+    extension.config.settings.customCSS = 'vsc-controller { color: red; }';
+
+    extension.injectControllerCSS();
+    extension.setupCSSLiveUpdates();
+    expect(extension._customSheet).not.toBeNull();
+
+    document.documentElement.dispatchEvent(
+      new CustomEvent('VSC_STORAGE_CHANGED', {
+        detail: { customCSS: { newValue: '' } },
+      })
+    );
+
+    expect(extension._customSheet).toBeNull();
+    expect(document.adoptedStyleSheets).toContain(extension._controllerSheet);
+  });
+});

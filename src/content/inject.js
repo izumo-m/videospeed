@@ -1,6 +1,5 @@
 /**
- * Video Speed Controller - Main Content Script
- * Modular architecture using global variables loaded via script array
+ * Video Speed Controller — Main Content Script
  */
 
 class VideoSpeedExtension {
@@ -34,35 +33,23 @@ class VideoSpeedExtension {
       this.config = window.VSC.videoSpeedConfig;
       await this.config.load();
 
-      // Initialize site handler
-      this.siteHandlerManager.initialize(document);
+      if (this.config.settings._abort) {
+        this.logger.debug('Extension disabled on this site — aborting init');
+        return;
+      }
 
-      // Create action handler and event manager
-      this.eventManager = new this.EventManager(this.config, null);
-      this.actionHandler = new this.ActionHandler(this.config, this.eventManager);
-      this.eventManager.actionHandler = this.actionHandler; // Set circular reference
-
-      // Set up observers
-      this.setupObservers();
-
-      // Initialize when document is ready
-      this.initializeWhenReady(document, (doc) => {
-        this.initializeDocument(doc);
-      });
-
-      this.logger.info('Video Speed Controller initialized successfully');
-      this.initialized = true;
+      // Defer DOM work so page frameworks finish init before we mutate.
+      this.deferDOMWork(document);
     } catch (error) {
-      console.error(`❌ Failed to initialize Video Speed Controller: ${error.message}`);
-      console.error('📋 Full error details:', error);
-      console.error('🔍 Error stack:', error.stack);
+      this.logger.error(`Failed to initialize Video Speed Controller: ${error.message}`);
+      this.logger.error(`Error stack: ${error.stack}`);
     }
   }
 
   /**
- * Initialize for a specific document
- * @param {Document} document - Document to initialize
- */
+   * Initialize for a specific document
+   * @param {Document} document - Document to initialize
+   */
   initializeDocument(document) {
     try {
       if (window.VSC.initialized) {
@@ -70,12 +57,7 @@ class VideoSpeedExtension {
       }
 
       window.VSC.initialized = true;
-
-      this.applyDomainStyles(document);
       this.eventManager.setupEventListeners(document);
-      if (document !== window.document) {
-        this.setupDocumentCSS(document);
-      }
 
       this.deferExpensiveOperations(document);
       this.logger.debug('Document initialization completed');
@@ -89,10 +71,9 @@ class VideoSpeedExtension {
    * @param {Document} document - Document to defer operations for
    */
   deferExpensiveOperations(document) {
-    // Use requestIdleCallback with a longer timeout to avoid blocking critical page load
     const callback = () => {
       try {
-        // Start mutation observer after page load is complete
+        // Start mutation observer — catches dynamically added media elements
         if (this.mutationObserver) {
           this.mutationObserver.start(document);
           this.logger.debug('Mutation observer started for document');
@@ -105,11 +86,9 @@ class VideoSpeedExtension {
       }
     };
 
-    // Use requestIdleCallback if available, with reasonable timeout
     if (window.requestIdleCallback) {
-      requestIdleCallback(callback, { timeout: 2000 });
+      requestIdleCallback(callback);
     } else {
-      // Fallback for browsers without requestIdleCallback
       setTimeout(callback, 100);
     }
   }
@@ -142,9 +121,8 @@ class VideoSpeedExtension {
       }
     };
 
-    // Use requestIdleCallback for the scan as well
     if (window.requestIdleCallback) {
-      requestIdleCallback(performChunkedScan, { timeout: 3000 });
+      requestIdleCallback(performChunkedScan);
     } else {
       setTimeout(performChunkedScan, 200);
     }
@@ -177,19 +155,105 @@ class VideoSpeedExtension {
   }
 
   /**
- * Apply domain-specific styles using CSS custom properties
- * Sets CSS custom property on :root to enable CSS-based domain targeting
- * @param {Document} document - Document to apply styles to
- */
-  applyDomainStyles(document) {
-    try {
-      const hostname = window.location.hostname;
-      if (document.documentElement) {
-        document.documentElement.style.setProperty('--vsc-domain', `"${hostname}"`);
-      }
-    } catch (error) {
-      this.logger.error(`Failed to apply domain styles: ${error.message}`);
+   * Defer DOM work via requestIdleCallback to yield to site frameworks
+   * before injecting CSS, controllers, and observers.
+   */
+  deferDOMWork(document) {
+    const doWork = () => {
+      this.injectControllerCSS();
+      this.setupCSSLiveUpdates();
+      this.siteHandlerManager.initialize(document);
+
+      this.eventManager = new this.EventManager(this.config, null);
+      this.actionHandler = new this.ActionHandler(this.config, this.eventManager);
+      this.eventManager.actionHandler = this.actionHandler;
+
+      this.setupObservers();
+
+      this.initializeWhenReady(document, (doc) => {
+        this.initializeDocument(doc);
+      });
+
+      this.logger.info('Video Speed Controller initialized successfully');
+      this.initialized = true;
+    };
+
+    if (window.requestIdleCallback) {
+      requestIdleCallback(doWork);
+    } else {
+      setTimeout(doWork, 0);
     }
+  }
+
+  /**
+   * Resolve domain-based CSS selectors for the current hostname.
+   * Matching domains: selector stripped (rule applies unconditionally).
+   * Non-matching: entire rule removed. Stripping (vs neutering with a dead
+   * selector) ensures perf-sensitive selectors like [style*=...] inside
+   * non-matching rules never reach the browser's style invalidation engine.
+   */
+  preprocessDomainCSS(css) {
+    const hostname = location.hostname.replace(/^www\./, '');
+    return css.replace(
+      /:root\[style\*='--vsc-domain:\s*"([^"]+)"'\]([^{]*)\{([^}]*)\}/g,
+      (match, domain, selector, body) => (domain === hostname ? `${selector.trim()} {${body}}` : '')
+    );
+  }
+
+  /**
+   * Inject controller CSS via adoptedStyleSheets — pure CSSOM, zero DOM
+   * mutations. <style> elements trigger page-level MutationObservers on
+   * sites with complex frameworks, breaking their internal state.
+   *
+   * Two separate sheets: _controllerSheet (built-in defaults, domain-
+   * preprocessed, never changes at runtime) and _customSheet (user
+   * additions, injected raw, live-updatable). Keeps them separate so
+   * user CSS edits don't re-preprocess the defaults.
+   */
+  injectControllerCSS() {
+    try {
+      if (this._controllerSheet) {
+        return;
+      }
+      this._controllerSheet = new CSSStyleSheet();
+      this._controllerSheet.replaceSync(
+        this.preprocessDomainCSS(window.VSC.Constants.DEFAULT_CONTROLLER_CSS)
+      );
+      const toAdopt = [this._controllerSheet];
+
+      const customCSS = this.config.settings.customCSS || '';
+      if (customCSS) {
+        this._customSheet = new CSSStyleSheet();
+        this._customSheet.replaceSync(customCSS);
+        toAdopt.push(this._customSheet);
+      }
+
+      document.adoptedStyleSheets = [...document.adoptedStyleSheets, ...toAdopt];
+    } catch (error) {
+      this.logger.error(`Failed to inject controller CSS: ${error.message}`);
+    }
+  }
+
+  /** Live-update the user's custom CSS when options are saved. */
+  setupCSSLiveUpdates() {
+    document.documentElement.addEventListener('VSC_STORAGE_CHANGED', (e) => {
+      if (e.detail?.customCSS?.newValue === undefined || !this._controllerSheet) {
+        return;
+      }
+      const customCSS = e.detail.customCSS.newValue || '';
+      if (customCSS) {
+        if (!this._customSheet) {
+          this._customSheet = new CSSStyleSheet();
+          document.adoptedStyleSheets = [...document.adoptedStyleSheets, this._customSheet];
+        }
+        this._customSheet.replaceSync(customCSS);
+      } else if (this._customSheet) {
+        document.adoptedStyleSheets = document.adoptedStyleSheets.filter(
+          (s) => s !== this._customSheet
+        );
+        this._customSheet = null;
+      }
+    });
   }
 
   /**
@@ -225,6 +289,19 @@ class VideoSpeedExtension {
         return;
       }
 
+      // Defer until readyState >= HAVE_CURRENT_DATA — inserting a controller
+      // too early can trigger the site's internal MutationObservers.
+      if (video.readyState < 2) {
+        this.logger.debug(
+          'Deferring controller until loadeddata (readyState=%d)',
+          video.readyState
+        );
+        video.addEventListener('loadeddata', () => this.onVideoFound(video, parent), {
+          once: true,
+        });
+        return;
+      }
+
       // Check if controller should start hidden based on video visibility/size
       const shouldStartHidden = this.mediaObserver
         ? this.mediaObserver.shouldStartHidden(video)
@@ -242,9 +319,59 @@ class VideoSpeedExtension {
         shouldStartHidden
       );
     } catch (error) {
-      console.error('💥 Failed to attach controller to video:', error);
       this.logger.error(`Failed to attach controller to video: ${error.message}`);
     }
+  }
+
+  /**
+   * Tear down the extension: remove all controllers, stop observers, clean up listeners.
+   * Counterpart to initialize() — leaves the page as if VSC was never active.
+   */
+  teardown() {
+    if (!this.initialized) {
+      return;
+    }
+
+    this.logger.info('Tearing down Video Speed Controller');
+
+    // Remove all controllers from tracked media elements
+    const videos = window.VSC.stateManager ? window.VSC.stateManager.getAllMediaElements() : [];
+    for (const video of videos) {
+      if (video.vsc) {
+        video.vsc.remove();
+      }
+    }
+
+    // Stop observing DOM for new videos
+    if (this.mutationObserver) {
+      this.mutationObserver.stop();
+      this.mutationObserver = null;
+    }
+
+    // Remove keyboard/ratechange listeners
+    if (this.eventManager) {
+      this.eventManager.cleanup();
+      this.eventManager = null;
+    }
+
+    // Clean up site-specific handlers
+    if (this.siteHandlerManager) {
+      this.siteHandlerManager.cleanup();
+    }
+
+    // Remove adopted controller CSS (both default and custom sheets)
+    if (document.adoptedStyleSheets) {
+      document.adoptedStyleSheets = document.adoptedStyleSheets.filter(
+        (s) => s !== this._controllerSheet && s !== this._customSheet
+      );
+    }
+    this._controllerSheet = null;
+    this._customSheet = null;
+
+    this.actionHandler = null;
+    this.mediaObserver = null;
+    this.initialized = false;
+    window.VSC.initialized = false;
   }
 
   /**
@@ -261,33 +388,13 @@ class VideoSpeedExtension {
       this.logger.error(`Failed to remove video controller: ${error.message}`);
     }
   }
-
-  /**
-   * Set up CSS for iframe documents
-   * @param {Document} document - Document to set up CSS for
-   */
-  setupDocumentCSS(document) {
-    const link = document.createElement('link');
-    link.href =
-      typeof chrome !== 'undefined' && chrome.runtime
-        ? chrome.runtime.getURL('src/styles/inject.css')
-        : '/src/styles/inject.css';
-    link.type = 'text/css';
-    link.rel = 'stylesheet';
-    document.head.appendChild(link);
-    this.logger.debug('CSS injected into iframe document');
-  }
-
 }
 
-// Initialize extension and message handlers in an IIFE to avoid global scope pollution
 (function () {
-  // Create and initialize extension instance
   const extension = new VideoSpeedExtension();
 
-  // Message handler for popup communication via bridge
-  // Listen for messages from content script bridge
-  window.addEventListener('VSC_MESSAGE', (event) => {
+  // Lifecycle commands from bridge (popup, background, storage changes)
+  document.documentElement.addEventListener('VSC_MESSAGE', (event) => {
     const message = event.detail;
 
     // Handle namespaced VSC message types
@@ -298,7 +405,8 @@ class VideoSpeedExtension {
       switch (message.type) {
         case window.VSC.Constants.MESSAGE_TYPES.SET_SPEED:
           if (message.payload && typeof message.payload.speed === 'number') {
-            const targetSpeed = message.payload.speed;
+            const { MIN, MAX } = window.VSC.Constants.SPEED_LIMITS;
+            const targetSpeed = Math.min(Math.max(message.payload.speed, MIN), MAX);
             videos.forEach((video) => {
               if (video.vsc) {
                 extension.actionHandler.adjustSpeed(video, targetSpeed);
@@ -308,7 +416,9 @@ class VideoSpeedExtension {
             });
 
             // Log the successful operation
-            window.VSC.logger?.debug(`Set speed to ${targetSpeed} on ${videos.length} media elements`);
+            window.VSC.logger?.debug(
+              `Set speed to ${targetSpeed} on ${videos.length} media elements`
+            );
           }
           break;
 
@@ -320,12 +430,15 @@ class VideoSpeedExtension {
                 extension.actionHandler.adjustSpeed(video, delta, { relative: true });
               } else {
                 // Fallback for videos without controller
-                const newSpeed = Math.min(Math.max(video.playbackRate + delta, 0.07), 16);
+                const { MIN: sMin, MAX: sMax } = window.VSC.Constants.SPEED_LIMITS;
+                const newSpeed = Math.min(Math.max(video.playbackRate + delta, sMin), sMax);
                 video.playbackRate = newSpeed;
               }
             });
 
-            window.VSC.logger?.debug(`Adjusted speed by ${delta} on ${videos.length} media elements`);
+            window.VSC.logger?.debug(
+              `Adjusted speed by ${delta} on ${videos.length} media elements`
+            );
           }
           break;
 
@@ -346,6 +459,14 @@ class VideoSpeedExtension {
             extension.actionHandler.runAction('display', null, null);
           }
           break;
+
+        case window.VSC.Constants.MESSAGE_TYPES.TEARDOWN:
+          extension.teardown();
+          break;
+
+        case window.VSC.Constants.MESSAGE_TYPES.REINIT:
+          extension.initialize();
+          break;
       }
     }
   });
@@ -358,10 +479,9 @@ class VideoSpeedExtension {
 
   // Auto-initialize
   extension.initialize().catch((error) => {
-    console.error(`Extension initialization failed: ${error.message}`);
     window.VSC.logger.error(`Extension initialization failed: ${error.message}`);
   });
 
   // Export only what's needed with consistent VSC_ prefix
-  window.VSC_controller = extension;  // The initialized instance
+  window.VSC_controller = extension; // The initialized instance
 })();
