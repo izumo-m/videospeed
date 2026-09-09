@@ -29,33 +29,29 @@ class ShadowDOMManager {
         display: inline-block;
       }
       
-      /* Hide shadow DOM content for different hiding scenarios */
-      :host(.vsc-hidden) #controller,
-      :host(.vsc-nosource) #controller {
+      /* Hide the automatic layer without disturbing any explicit override. */
+      :host(.vsc-hidden) #controller {
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
       }
 
-      /* YouTube autohide — fade with player controls.
-         :host-context() matches when any ancestor of <vsc-controller> has the
-         class, so no JS MutationObserver forwarding is needed. */
-      :host-context(.ytp-autohide) #controller {
-        visibility: hidden !important;
-        opacity: 0 !important;
-        transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      /* Temporarily show controller (speed change flash, highest priority).
-         vsc-manual:not(vsc-hidden) intentionally has NO CSS rule — user toggling
-         back to "show" should restore default behavior (follow autohide), not
-         permanently override it. vsc-manual is only read by JS flash guards. */
-
-      /* Show shadow DOM content when host has vsc-show class (highest priority) */
+      /* Explicit show and temporary speed feedback outrank automatic hiding,
+         including startHidden, media visibility, and site autohide. */
+      :host([data-vsc-visibility="show"]) #controller,
       :host(.vsc-show) #controller {
         display: block !important;
         visibility: visible !important;
         opacity: ${opacity} !important;
+      }
+
+      /* Explicit hide and unavailable media are final: flashes and user show
+         overrides must not reveal them. */
+      :host([data-vsc-visibility="hide"]) #controller,
+      :host(.vsc-nosource) #controller {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
       }
       
       #controller {

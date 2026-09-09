@@ -7,8 +7,11 @@
  * (src/styles/controller-css-defaults.js), injected as a <style> by inject.js.
  */
 vsc-controller {
-  /* Out of normal flow by default; site overrides change to relative */
+  /* Out of normal flow by default; site overrides change to relative. */
   position: absolute;
+  /* Pin host origin so flex/grid static-positioning cannot center it. */
+  top: 0;
+  left: 0;
   visibility: visible;
   opacity: 1;
   display: block;

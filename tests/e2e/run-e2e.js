@@ -2,7 +2,7 @@
 
 /**
  * E2E test runner for Video Speed Controller Chrome Extension
- * Usage: node tests/e2e/run-e2e.js [youtube|basic|all]
+ * Usage: node tests/e2e/run-e2e.js [youtube|basic|settings|display|arbitration|lifecycle|all]
  */
 
 import { pathToFileURL, fileURLToPath } from 'url';
@@ -39,6 +39,10 @@ async function runE2ETests() {
     testFiles = ['settings-injection.e2e.js'];
   } else if (testType === 'display') {
     testFiles = ['display-toggle.e2e.js'];
+  } else if (testType === 'arbitration') {
+    testFiles = ['speed-arbitration.e2e.js'];
+  } else if (testType === 'lifecycle') {
+    testFiles = ['lifecycle.e2e.js'];
   } else {
     // Run all tests
     testFiles = [
@@ -46,6 +50,8 @@ async function runE2ETests() {
       'youtube.e2e.js',
       'settings-injection.e2e.js',
       'display-toggle.e2e.js',
+      'speed-arbitration.e2e.js',
+      'lifecycle.e2e.js',
     ];
   }
 

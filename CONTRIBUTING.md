@@ -15,7 +15,7 @@ a POSIX shell. Windows users need:
 1. **[Git for Windows](https://git-scm.com/download/win)** — provides the
    `sh.exe` that Husky hooks run under. Use Git Bash or a terminal backed by
    Git's bundled shell.
-2. **Node.js >= 22.13** — install via any version manager that reads `.nvmrc`
+2. **Node.js 22.22.2+, 24.15.0+, or 26+** — install via any version manager that reads `.nvmrc`
    ([fnm](https://github.com/Schniz/fnm), [nvm-windows](https://github.com/coreybutler/nvm-windows),
    [volta](https://volta.sh/), etc.). Make sure Node is available in both your
    regular terminal and Git Bash.
@@ -98,19 +98,48 @@ a POSIX shell. Windows users need:
 13. Open your branch up on the github website then click `New pull request` and
     write up a description of your changes.
 
+## Changing speed behavior
+
+Anything that affects how VSC decides `video.playbackRate` — fight-back,
+adoption of native speed changes, lifecycle restores, site rules — is
+governed by the arbitration contract in `docs/speed-arbitration.md`
+(machine-checked twin: `specs/SpeedArbiter.tla`). PRs touching speed
+behavior must identify which transition-table cell(s) they change and
+why. Classifier heuristics (gesture evidence) must cite the issue that
+motivated them. `npm test` runs the JavaScript conformance and differential
+suites. Run `npm run test:tlc` separately for the pinned TLA+ models; it
+requires Java 11 or newer and downloads a checksum-verified TLC artifact
+outside the repository. CI runs both commands. Changes to shared/local
+arbitration or controller lifecycle should also run `npm run build && node
+tests/e2e/run-e2e.js arbitration` for the two-media browser fixture.
+
+## Changing controller visibility
+
+Controller visibility is governed by `docs/controller-visibility.md`
+(machine-checked twin: `specs/ControllerVisibility.tla`). PRs touching the
+visibility override, automatic hiding, feedback timers, CSS precedence,
+broadcast actions, or controller teardown must identify the changed transition
+or precedence rule. Run `npm test`, `npm run test:tlc`, `npm run build`, and
+`node tests/e2e/run-e2e.js display`. The TLA+ model checks temporal behavior;
+the Chrome matrix checks the real adopted shadow stylesheet. Neither replaces
+the other.
+
 ## Optional
 
-### Run Pre-Commit Checks Locally
+### Run Git Hooks Manually
 
-Installing [pre-commit](https://pre-commit.com/) is easy to do (click the link
-for instructions on your platform). This repo comes with pre-commit already
-configured. Doing this will ensure that your project is properly formatted and
-runs some very basic tests. Once you have pre-commit installed on your system,
-simply enter `pre-commit install` in your terminal in the folder to have these
-checks run automatically each time you commit.
+Running `npm install` configures the repository's Husky hooks. Commits run
+`npx lint-staged` to format and lint staged files, while pushes run the full
+lint and test suites.
 
-Even better, after issueing the install command you can now manually run
-pre-commit checks before committing via `pre-commit run --all-files`
+You can run the same checks manually:
+
+```sh
+npx lint-staged
+npm run lint
+npm test
+npm run test:tlc
+```
 
 ### Pull Upstream Changes
 

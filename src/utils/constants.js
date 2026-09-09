@@ -46,13 +46,11 @@ if (!window.VSC.Constants.DEFAULT_SETTINGS) {
       predefined: true,
     })),
     siteRules: [
-      { pattern: 'www.instagram.com', enabled: false, speed: null },
       { pattern: 'imgur.com', enabled: false, speed: null },
       { pattern: 'teams.microsoft.com', enabled: false, speed: null },
       { pattern: 'meet.google.com', enabled: false, speed: null },
     ],
-    blacklist: `www.instagram.com
-imgur.com
+    blacklist: `imgur.com
 teams.microsoft.com
 meet.google.com`.replace(regStrip, ''),
     defaultLogLevel: 4,
@@ -85,7 +83,6 @@ meet.google.com`.replace(regStrip, ''),
     RESET_SPEED: 'VSC_RESET_SPEED',
     TOGGLE_DISPLAY: 'VSC_TOGGLE_DISPLAY',
     TEARDOWN: 'VSC_TEARDOWN',
-    REINIT: 'VSC_REINIT',
   };
 
   const SPEED_LIMITS = {

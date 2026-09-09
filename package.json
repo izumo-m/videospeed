@@ -1,6 +1,6 @@
 {
   "name": "video-speed-controller",
-  "version": "0.10.2",
+  "version": "0.11.1",
   "description": "Speed up, slow down, advance and rewind HTML5 audio/video with shortcuts",
   "type": "module",
   "scripts": {
@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:unit": "vitest run tests/unit/",
     "test:integration": "vitest run tests/integration/",
+    "test:tlc": "node scripts/tlc.mjs",
     "test:e2e": "npm run build && node tests/e2e/run-e2e.js",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -18,7 +19,7 @@
     "lint:fix": "eslint 'src/**/*.js' 'tests/**/*.js' --fix",
     "format": "prettier --write 'src/**/*.js' 'tests/**/*.js'",
     "build:release": "RELEASE=1 node scripts/build.mjs",
-    "prerelease": "npm run clean && npm test",
+    "prerelease": "npm run clean && npm run lint && npm test && npm run test:tlc",
     "release": "npm run build:release && node scripts/package-release.js",
     "release:github": "node scripts/github-release.js",
     "clean": "node scripts/clean.mjs dist release",
@@ -34,21 +35,21 @@
     ]
   },
   "devDependencies": {
-    "archiver": "^7.0.1",
     "@eslint/js": "^10.0.1",
-    "esbuild": "^0.27.4",
-    "eslint": "^10.1.0",
-    "fs-extra": "^11.2.0",
-    "globals": "^17.4.0",
+    "archiver": "^8.0.0",
+    "esbuild": "^0.28.1",
+    "eslint": "^10.8.1",
+    "fs-extra": "^11.4.0",
+    "globals": "^17.9.0",
     "husky": "^9.1.7",
-    "jsdom": "^29.0.1",
-    "lint-staged": "^16.4.0",
-    "prettier": "^3.1.0",
-    "puppeteer": "^24.10.2",
-    "vitest": "^4.1.1"
+    "jsdom": "^30.0.1",
+    "lint-staged": "^17.3.0",
+    "prettier": "^3.9.6",
+    "puppeteer": "^25.4.0",
+    "vitest": "^4.1.10"
   },
   "engines": {
-    "node": ">=22.13.0"
+    "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
   },
   "prettier": {
     "singleQuote": true,

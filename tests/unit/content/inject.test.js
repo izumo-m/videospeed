@@ -153,6 +153,28 @@ describe('Inject', () => {
     expect(video.vsc).toBeUndefined();
   });
 
+  it('removes a deferred listener when media disappears before loadeddata', () => {
+    extension = window.VSC_controller;
+    const video = createMockVideo({ readyState: 1 });
+    const parent = document.createElement('div');
+
+    Object.defineProperty(video, 'isConnected', {
+      value: true,
+      writable: true,
+      configurable: true,
+    });
+
+    extension.onVideoFound(video, parent);
+    expect(extension.deferredMediaListeners.has(video)).toBe(true);
+
+    extension.onVideoRemoved(video);
+    expect(extension.deferredMediaListeners.has(video)).toBe(false);
+
+    video.readyState = 4;
+    video.dispatchEvent(new Event('loadeddata'));
+    expect(video.vsc).toBeUndefined();
+  });
+
   it('onVideoFound attaches immediately when readyState >= 2', () => {
     extension = window.VSC_controller;
     expect(extension).toBeDefined();
@@ -229,6 +251,35 @@ describe('Inject', () => {
 
     expect(video.vsc).toBeDefined();
     expect(video.vsc.parent).toBe(fallbackParent);
+  });
+
+  it('teardown cancels DOM work queued before initialization completes', () => {
+    extension = window.VSC_controller;
+    const originalRequestIdleCallback = globalThis.requestIdleCallback;
+    const previousAcceptingMedia = extension.acceptingMedia;
+    const previousInitialized = extension.initialized;
+    const injectCSS = vi.spyOn(extension, 'injectControllerCSS');
+    let queuedCallback;
+
+    try {
+      globalThis.requestIdleCallback = (callback) => {
+        queuedCallback = callback;
+      };
+      extension.acceptingMedia = true;
+      extension.initialized = false;
+
+      extension.deferDOMWork(document);
+      extension.teardown();
+      queuedCallback();
+
+      expect(extension.acceptingMedia).toBe(false);
+      expect(injectCSS).not.toHaveBeenCalled();
+    } finally {
+      globalThis.requestIdleCallback = originalRequestIdleCallback;
+      extension.acceptingMedia = previousAcceptingMedia;
+      extension.initialized = previousInitialized;
+      injectCSS.mockRestore();
+    }
   });
 
   // --- CSS injection: adoptedStyleSheets composition ---

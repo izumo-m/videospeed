@@ -14,6 +14,7 @@ class SiteHandlerManager {
       window.VSC.AmazonHandler,
       window.VSC.AppleHandler,
       window.VSC.DailymotionHandler,
+      window.VSC.FrameHandler,
     ];
   }
 
@@ -107,6 +108,25 @@ class SiteHandlerManager {
     }
 
     return false;
+  }
+
+  /**
+   * Resolve a page gesture to one controlled media element when the current
+   * site's player DOM supplies an unambiguous association.
+   * @param {Event} event
+   * @param {HTMLMediaElement[]} mediaElements
+   * @returns {HTMLMediaElement|null}
+   */
+  resolveGestureMedia(event, mediaElements) {
+    return this.getCurrentHandler().resolveGestureMedia(event, mediaElements);
+  }
+
+  /**
+   * Get site-declared intent-classifier rule activations
+   * @returns {Object|null} Partial rule flags, or null for generic rules
+   */
+  getClassifierRules() {
+    return this.getCurrentHandler().getClassifierRules();
   }
 
   /**

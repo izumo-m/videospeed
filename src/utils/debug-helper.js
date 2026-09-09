@@ -138,31 +138,40 @@ class DebugHelper {
       console.log('Element:', controller);
       console.log('Classes:', controller.className);
 
-      const style = window.getComputedStyle(controller);
+      const hostStyle = window.getComputedStyle(controller);
+      const innerController = controller.shadowRoot?.querySelector('#controller');
+      const innerStyle = innerController ? window.getComputedStyle(innerController) : null;
       console.log('Computed styles:', {
-        display: style.display,
-        visibility: style.visibility,
-        opacity: style.opacity,
-        position: style.position,
-        top: style.top,
-        left: style.left,
-        zIndex: style.zIndex,
+        host: {
+          display: hostStyle.display,
+          visibility: hostStyle.visibility,
+          opacity: hostStyle.opacity,
+          position: hostStyle.position,
+          top: hostStyle.top,
+          left: hostStyle.left,
+          zIndex: hostStyle.zIndex,
+        },
+        inner: innerStyle
+          ? {
+              display: innerStyle.display,
+              visibility: innerStyle.visibility,
+              opacity: innerStyle.opacity,
+            }
+          : null,
       });
 
-      // Check if hidden by VSC classes
       const isHidden = controller.classList.contains('vsc-hidden');
-      const isManual = controller.classList.contains('vsc-manual');
       const hasNoSource = controller.classList.contains('vsc-nosource');
-      const isAutohide = controller.classList.contains('vsc-autohide');
       const isShow = controller.classList.contains('vsc-show');
+      const visibilityOverride = controller.dataset.vscVisibility || 'auto';
 
       console.log('VSC State:', {
         hidden: isHidden,
-        manual: isManual,
         noSource: hasNoSource,
-        autohide: isAutohide,
         show: isShow,
-        effectivelyVisible: !isHidden && !isAutohide && style.display !== 'none',
+        visibilityOverride,
+        effectivelyVisible:
+          !!innerStyle && innerStyle.display !== 'none' && innerStyle.visibility !== 'hidden',
       });
 
       // Find associated video
@@ -229,6 +238,7 @@ class DebugHelper {
           window.VSC_controller.actionHandler.adjustSpeed(video, testSpeed);
         } else {
           console.log(`Applying speed ${testSpeed} to media #${index + 1} directly`);
+          // eslint-disable-next-line no-restricted-syntax -- diagnostic probe, intentionally raw
           video.playbackRate = testSpeed;
         }
       });
@@ -240,6 +250,7 @@ class DebugHelper {
           if (video.vsc) {
             window.VSC_controller.actionHandler.adjustSpeed(video, 1.0);
           } else {
+            // eslint-disable-next-line no-restricted-syntax -- diagnostic probe restore, intentionally raw
             video.playbackRate = 1.0;
           }
         });
@@ -291,9 +302,8 @@ class DebugHelper {
 
     const controllers = document.querySelectorAll('vsc-controller');
     controllers.forEach((controller, index) => {
-      // Remove all hiding classes and rely on vsc-show for visibility
-      controller.classList.remove('vsc-hidden', 'vsc-nosource', 'vsc-autohide');
-      controller.classList.add('vsc-manual', 'vsc-show');
+      controller.dataset.vscVisibility = 'show';
+      controller.classList.remove('vsc-nosource', 'vsc-show');
 
       console.log(`Controller #${index + 1} forced visible`);
     });
@@ -314,9 +324,8 @@ class DebugHelper {
       if (audio.vsc && audio.vsc.div) {
         const controller = audio.vsc.div;
 
-        // Remove all hiding classes and rely on vsc-show for visibility
-        controller.classList.remove('vsc-hidden', 'vsc-nosource', 'vsc-autohide');
-        controller.classList.add('vsc-manual', 'vsc-show');
+        controller.dataset.vscVisibility = 'show';
+        controller.classList.remove('vsc-nosource', 'vsc-show');
 
         console.log(`Audio controller #${index + 1} forced visible`);
         controllersShown++;
@@ -362,7 +371,9 @@ class DebugHelper {
       mutations.forEach((mutation) => {
         if (
           mutation.type === 'attributes' &&
-          (mutation.attributeName === 'class' || mutation.attributeName === 'style')
+          (mutation.attributeName === 'class' ||
+            mutation.attributeName === 'style' ||
+            mutation.attributeName === 'data-vsc-visibility')
         ) {
           const target = mutation.target;
           if (target.tagName === 'VSC-CONTROLLER') {
@@ -370,8 +381,7 @@ class DebugHelper {
               element: target,
               classes: target.className,
               hidden: target.classList.contains('vsc-hidden'),
-              manual: target.classList.contains('vsc-manual'),
-              autohide: target.classList.contains('vsc-autohide'),
+              visibilityOverride: target.dataset.vscVisibility || 'auto',
               show: target.classList.contains('vsc-show'),
             });
           }
@@ -382,7 +392,7 @@ class DebugHelper {
     observer.observe(document.body, {
       attributes: true,
       subtree: true,
-      attributeFilter: ['class', 'style'],
+      attributeFilter: ['class', 'style', 'data-vsc-visibility'],
     });
 
     return observer;
