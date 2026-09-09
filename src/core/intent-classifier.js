@@ -162,6 +162,20 @@ class IntentClassifier {
     this.lastInputAt = event.timeStamp;
   }
 
+  /**
+   * A keydown a VSC binding consumed. Unless `exclusiveKeys` suppresses the
+   * event, the site still receives the same keystroke — so a native speed
+   * shortcut remains user intent even when we act on it too (a user shortcut
+   * on Comma/Period sits exactly where YouTube's < / > live).
+   * @param {KeyboardEvent} event
+   */
+  observeHandledKey(event) {
+    this.lastInputAt = event.timeStamp;
+    if (isNativeSpeedShortcutKey(event)) {
+      this.lastGestureAt = event.timeStamp;
+    }
+  }
+
   /** A keydown no VSC binding handled. */
   observeUnhandledKey(event) {
     this.lastInputAt = event.timeStamp;

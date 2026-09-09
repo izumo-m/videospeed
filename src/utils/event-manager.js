@@ -116,6 +116,9 @@ class EventManager {
     const keyBinding = this.findMatchingBinding(event);
 
     if (keyBinding) {
+      // Handled here, but the site hears it too unless exclusiveKeys stops the
+      // event — a native speed shortcut is still the user's intent.
+      this.arbitration.classifier.observeHandledKey(event);
       this.actionHandler.runAction(keyBinding.action, keyBinding.value, event);
 
       if (this.config.settings.exclusiveKeys) {

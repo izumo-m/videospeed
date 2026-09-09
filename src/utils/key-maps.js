@@ -213,9 +213,6 @@ export const PREDEFINED_ACTIONS = [
   'display',
   'mark',
   'jump',
-  'boost',
-  'step-rewind',
-  'step-advance',
 ];
 
 /**
@@ -233,9 +230,6 @@ export const DEFAULT_BINDINGS = Object.freeze({
   display: { code: 'KeyV', key: 86, keyCode: 86, displayKey: 'v', value: 0 },
   mark: { code: 'KeyM', key: 77, keyCode: 77, displayKey: 'm', value: 0 },
   jump: { code: 'KeyJ', key: 74, keyCode: 74, displayKey: 'j', value: 0 },
-  boost: { code: 'KeyB', key: 42, keyCode: 42, displayKey: 'B', value: 5.0 },
-  'step-rewind': { code: 'Key,', key: 60, keyCode: 60, displayKey: ',', value: 1.0 },
-  'step-advance': { code: 'Key,', key: 62, keyCode: 60, displayKey: ',', value: 1.0 },
 });
 
 /** event.code values that must not be recorded as shortcuts. */
