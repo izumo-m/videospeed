@@ -835,8 +835,12 @@ async function restore_options() {
     const shortcutsContainer = document.getElementById('shortcuts-container');
     shortcutsContainer.innerHTML = '';
 
+    // Earlier builds of this fork stored boost/step-* with predefined: true.
+    // Lock only the actual predefined actions; those stale rows render as
+    // removable custom rows and lose the flag on the next save.
+    const predefinedActions = window.VSC.Constants.PREDEFINED_ACTIONS;
     for (const item of bindings) {
-      if (item.predefined) {
+      if (item.predefined && predefinedActions.includes(item.action)) {
         add_predefined_shortcut(item);
       } else {
         const row = add_shortcut({ action: item.action, value: item.value });
